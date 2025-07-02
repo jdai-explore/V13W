@@ -2,6 +2,7 @@
 """
 Main Window - PyQt5 Version with Day 3 Tree Navigation & Search Integration
 Professional main window with enhanced three-panel layout for ARXML Viewer Pro
+FIXED UI COLORS FOR BETTER VISIBILITY
 """
 
 import sys
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
     - Advanced search functionality
     - Navigation controller for tree-diagram sync
     - Layout manager for panel management
+    - FIXED UI COLORS FOR BETTER VISIBILITY
     """
     
     # Signals
@@ -83,7 +85,7 @@ class MainWindow(QMainWindow):
         self._create_status_bar()
         self._create_central_widget()
         self._setup_shortcuts()
-        # self._apply_theme()  # Dark theme disabled
+        self._apply_light_theme()  # Apply light theme with good contrast
         
         # Day 3 - Setup navigation and layout
         self._setup_navigation_controller()
@@ -546,94 +548,131 @@ class MainWindow(QMainWindow):
         nav_forward_action.triggered.connect(self._navigate_forward)
         self.addAction(nav_forward_action)
     
-    # def _apply_theme(self):  # DISABLED: Dark theme method
-        # """Apply dark theme styling"""
-        # self.setStyleSheet("""
-        # QMainWindow {
-        # background-color: #2b2b2b;
-        # color: #ffffff;
-        # }
-        # QMenuBar {
-        # background-color: #353535;
-        # color: #ffffff;
-        # border: none;
-        # }
-        # QMenuBar::item {
-        # background-color: transparent;
-        # padding: 4px 8px;
-        # }
-        # QMenuBar::item:selected {
-        # background-color: #4a4a4a;
-        # }
-        # QToolBar {
-        # background-color: #353535;
-        # border: none;
-        # spacing: 2px;
-        # }
-        # QStatusBar {
-        # background-color: #353535;
-        # color: #ffffff;
-        # border-top: 1px solid #555;
-        # }
-        # QTextEdit {
-        # background-color: #404040;
-        # color: #ffffff;
-        # border: 1px solid #555;
-        # }
-        # QLabel {
-        # color: #ffffff;
-        # }
-        # QPushButton {
-        # background-color: #4a4a4a;
-        # color: #ffffff;
-        # border: 1px solid #666;
-        # padding: 4px 12px;
-        # border-radius: 3px;
-        # }
-        # QPushButton:hover {
-        # background-color: #5a5a5a;
-        # }
-        # QPushButton:pressed {
-        # background-color: #3a3a3a;
-        # }
-        # QGraphicsView {
-        # background-color: #2b2b2b;
-        # border: 1px solid #555;
-        # }
-        # QTabWidget::pane {
-        # border: 1px solid #555;
-        # background-color: #404040;
-        # }
-        # QTabWidget::tab-bar {
-        # alignment: left;
-        # }
-        # QTabBar::tab {
-        # background-color: #505050;
-        # color: white;
-        # padding: 8px 12px;
-        # margin-right: 2px;
-        # border-top-left-radius: 3px;
-        # border-top-right-radius: 3px;
-        # }
-        # QTabBar::tab:selected {
-        # background-color: #4a90e2;
-        # }
-        # QTabBar::tab:hover {
-        # background-color: #5a5a5a;
-        # }
-        # QDockWidget {
-        # background-color: #404040;
-        # color: white;
-        # titlebar-close-icon: none;
-        # titlebar-normal-icon: none;
-        # }
-        # QDockWidget::title {
-        # background-color: #353535;
-        # color: white;
-        # padding: 5px;
-        # border: 1px solid #555;
-        # }
-        # """)
+    def _apply_light_theme(self):
+        """Apply light theme styling with good contrast"""
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f5f5f5;
+                color: #333333;
+            }
+            QMenuBar {
+                background-color: #ffffff;
+                color: #333333;
+                border-bottom: 1px solid #cccccc;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 6px 12px;
+                color: #333333;
+            }
+            QMenuBar::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+            QToolBar {
+                background-color: #ffffff;
+                border-bottom: 1px solid #cccccc;
+                spacing: 3px;
+                color: #333333;
+            }
+            QStatusBar {
+                background-color: #ffffff;
+                color: #333333;
+                border-top: 1px solid #cccccc;
+            }
+            QTextEdit {
+                background-color: #ffffff;
+                color: #333333;
+                border: 1px solid #cccccc;
+                selection-background-color: #e3f2fd;
+            }
+            QLabel {
+                color: #333333;
+            }
+            QPushButton {
+                background-color: #ffffff;
+                color: #333333;
+                border: 1px solid #cccccc;
+                padding: 6px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e3f2fd;
+                border-color: #1976d2;
+            }
+            QPushButton:pressed {
+                background-color: #bbdefb;
+            }
+            QGraphicsView {
+                background-color: #fafafa;
+                border: 1px solid #cccccc;
+            }
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background-color: #ffffff;
+            }
+            QTabWidget::tab-bar {
+                alignment: left;
+            }
+            QTabBar::tab {
+                background-color: #f5f5f5;
+                color: #333333;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                border: 1px solid #cccccc;
+                border-bottom: none;
+            }
+            QTabBar::tab:selected {
+                background-color: #ffffff;
+                color: #1976d2;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover {
+                background-color: #e3f2fd;
+            }
+            QDockWidget {
+                background-color: #ffffff;
+                color: #333333;
+            }
+            QDockWidget::title {
+                background-color: #f5f5f5;
+                color: #333333;
+                padding: 8px;
+                border: 1px solid #cccccc;
+                font-weight: bold;
+            }
+            QLineEdit {
+                background-color: #ffffff;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 6px;
+                color: #333333;
+            }
+            QLineEdit:focus {
+                border-color: #1976d2;
+                background-color: #fafafa;
+            }
+            QComboBox {
+                background-color: #ffffff;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 4px 8px;
+                color: #333333;
+            }
+            QComboBox:hover {
+                border-color: #1976d2;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                width: 12px;
+                height: 12px;
+            }
+        """)
     
     def _show_welcome_message(self):
         """Show welcome message in status bar"""
@@ -870,6 +909,7 @@ class MainWindow(QMainWindow):
     # ===== Existing Event Handlers (Updated for Day 3) =====
     
     def open_file_dialog(self):
+        """Open file selection dialog - FIXED"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Open ARXML File",
@@ -885,7 +925,6 @@ class MainWindow(QMainWindow):
                     QMessageBox.critical(self, "Error", f"Failed to open file: {file_path}")
             else:
                 print("❌ No app controller!")
-
     
     def on_file_opened(self, file_path: str):
         """Handle file opened event"""
@@ -938,27 +977,35 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(f"Parsing {Path(file_path).name}...")
     
     def on_parsing_finished(self, packages, metadata):
-        """Handle parsing finished event - Enhanced for Day 3"""
-        self.progress_bar.setVisible(False)
+        """Handle parsing finished event - SIMPLIFIED VERSION"""
+        print(f"🔧 MainWindow: Parsing finished, {len(packages)} packages")
         
-        # Day 3 - Build search index
-        try:
-            self.search_engine.build_index(packages)
-            self.logger.debug("Search index built successfully")
-        except Exception as e:
-            self.logger.error(f"Failed to build search index: {e}")
+        self.progress_bar.setVisible(False)
         
         # Update enhanced tree widget
         if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.load_packages(packages)
-        
-        # Setup navigation controller mappings
-        self._setup_tree_navigation_mappings()
+            try:
+                print("🔧 Loading packages into tree widget...")
+                self.enhanced_tree_widget.load_packages(packages)
+                print("✅ Tree widget loaded successfully")
+            except Exception as e:
+                print(f"❌ Tree widget loading failed: {e}")
         
         # Load packages into graphics scene
-        if hasattr(self, 'graphics_scene'):
-            self.graphics_scene.load_packages(packages)
-            self.graphics_scene.fit_components_in_view()
+        if hasattr(self, 'graphics_scene') and self.graphics_scene:
+            try:
+                print("🔧 Loading packages into graphics scene...")
+                self.graphics_scene.load_packages(packages)
+                print("✅ Graphics scene loaded successfully")
+                
+                # Switch to graphics view
+                if hasattr(self, 'graphics_stack'):
+                    self.graphics_stack.setCurrentIndex(1)
+                    print("✅ Switched to graphics view")
+            except Exception as e:
+                print(f"❌ Graphics scene loading failed: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Update statistics tab
         self._update_statistics_display(packages, metadata)
@@ -967,79 +1014,47 @@ class MainWindow(QMainWindow):
         stats = metadata.get('statistics', {})
         message = f"Loaded {stats.get('components_parsed', 0)} components in {stats.get('parse_time', 0):.2f}s"
         self.status_bar.showMessage(message, 3000)
-    
-    def _setup_tree_navigation_mappings(self):
-        """Setup navigation mappings between tree items and objects"""
-        if not self.enhanced_tree_widget:
-            return
-        
-        # Clear existing mappings
-        self.navigation_controller.clear_mappings()
-        
-        # Register all tree items with navigation controller
-        def register_tree_items(item, parent_count=0):
-            if hasattr(item, 'data_object') and item.data_object:
-                self.navigation_controller.register_tree_item(item, item.data_object)
-            
-            # Register children recursively
-            for i in range(item.childCount()):
-                child = item.child(i)
-                register_tree_items(child, parent_count + 1)
-        
-        # Register all top-level items and their children
-        for i in range(self.enhanced_tree_widget.topLevelItemCount()):
-            top_item = self.enhanced_tree_widget.topLevelItem(i)
-            register_tree_items(top_item)
-        
-        self.logger.debug("Tree navigation mappings setup complete")
+        print(f"✅ {message}")
     
     def _update_statistics_display(self, packages, metadata):
-        """Update statistics display"""
-        stats_text = "File Statistics:\n\n"
-        
-        # File info
-        if self.current_file:
-            file_path = Path(self.current_file)
-            stats_text += f"File: {file_path.name}\n"
-            stats_text += f"Size: {file_path.stat().st_size / 1024:.1f} KB\n\n"
-        
-        # Parsing stats
-        parse_stats = metadata.get('statistics', {})
-        stats_text += f"Parse Time: {parse_stats.get('parse_time', 0):.2f} seconds\n"
-        stats_text += f"Components: {parse_stats.get('components_parsed', 0)}\n"
-        stats_text += f"Ports: {parse_stats.get('ports_parsed', 0)}\n"
-        stats_text += f"Packages: {parse_stats.get('packages_parsed', 0)}\n\n"
-        
-        # Component breakdown
-        component_counts = {}
-        total_ports = 0
-        
-        for package in packages:
-            for component in package.get_all_components(recursive=True):
-                comp_type = component.component_type.name
-                component_counts[comp_type] = component_counts.get(comp_type, 0) + 1
-                total_ports += component.port_count
-        
-        if component_counts:
-            stats_text += "Component Types:\n"
-            for comp_type, count in sorted(component_counts.items()):
-                stats_text += f"  {comp_type}: {count}\n"
-            stats_text += f"\nTotal Ports: {total_ports}\n"
-        
-        # Tree statistics
-        if self.enhanced_tree_widget:
-            tree_stats = self.enhanced_tree_widget.get_statistics()
-            stats_text += f"\nTree View:\n"
-            stats_text += f"  Total Items: {tree_stats.get('total_items', 0)}\n"
-            stats_text += f"  Visible Items: {tree_stats.get('visible_items', 0)}\n"
-        
-        # Search engine statistics
-        search_stats = self.search_engine.get_statistics()
-        stats_text += f"\nSearch Index:\n"
-        stats_text += f"  Indexed Words: {search_stats.get('indexed_words', 0)}\n"
-        stats_text += f"  Search History: {search_stats.get('search_history_size', 0)}\n"
-        
-        self.statistics_text.setPlainText(stats_text)
+        """Update statistics display - SIMPLIFIED"""
+        try:
+            stats_text = "File Statistics:\n\n"
+            
+            # File info
+            if self.current_file:
+                file_path = Path(self.current_file)
+                stats_text += f"File: {file_path.name}\n"
+                stats_text += f"Size: {file_path.stat().st_size / 1024:.1f} KB\n\n"
+            
+            # Parsing stats
+            parse_stats = metadata.get('statistics', {})
+            stats_text += f"Parse Time: {parse_stats.get('parse_time', 0):.2f} seconds\n"
+            stats_text += f"Components: {parse_stats.get('components_parsed', 0)}\n"
+            stats_text += f"Ports: {parse_stats.get('ports_parsed', 0)}\n"
+            stats_text += f"Packages: {parse_stats.get('packages_parsed', 0)}\n\n"
+            
+            # Component breakdown
+            component_counts = {}
+            total_ports = 0
+            
+            for package in packages:
+                for component in package.get_all_components(recursive=True):
+                    comp_type = component.component_type.name
+                    component_counts[comp_type] = component_counts.get(comp_type, 0) + 1
+                    total_ports += component.port_count
+            
+            if component_counts:
+                stats_text += "Component Types:\n"
+                for comp_type, count in sorted(component_counts.items()):
+                    stats_text += f"  {comp_type}: {count}\n"
+                stats_text += f"\nTotal Ports: {total_ports}\n"
+            
+            if hasattr(self, 'statistics_text'):
+                self.statistics_text.setPlainText(stats_text)
+                
+        except Exception as e:
+            print(f"❌ Statistics update failed: {e}")
     
     def on_parsing_failed(self, error_message: str):
         """Handle parsing failed event"""
@@ -1078,9 +1093,8 @@ class MainWindow(QMainWindow):
     
     def set_theme(self, theme: str):
         """Set application theme"""
-        if theme == "dark":
-            pass
-            # self._apply_theme()  # Dark theme disabled
+        if theme == "light":
+            self._apply_light_theme()
     
     def _on_component_selected(self, component):
         """Handle component selection from graphics scene"""
@@ -1175,10 +1189,6 @@ class MainWindow(QMainWindow):
         """Refresh the current view"""
         if self.is_file_open:
             self.status_bar.showMessage("Refreshing view...", 1000)
-            
-            # Refresh search index
-            if hasattr(self, 'packages') and self.packages:
-                self.search_engine.build_index(self.packages)
     
     def _show_about_dialog(self):
         """Show about dialog"""

@@ -2,7 +2,7 @@
 """
 Enhanced Tree Widget - Custom tree widget with advanced features
 Provides hierarchical navigation with search, filtering, and context menus
-COMPLETE WORKING FILE
+COMPLETE WORKING FILE WITH FIXED UI COLORS
 """
 
 from typing import Dict, List, Optional, Set, Any
@@ -145,8 +145,8 @@ class EnhancedTreeWidgetItem(QTreeWidgetItem):
                 break
         
         if found_match:
-            # Highlight background
-            self.setBackground(0, QBrush(QColor(255, 255, 0, 50)))  # Light yellow
+            # Highlight background with light yellow
+            self.setBackground(0, QBrush(QColor(255, 255, 200, 100)))
         else:
             self.setBackground(0, QBrush())
 
@@ -220,42 +220,61 @@ class TreeSearchWidget(QWidget):
         self._apply_styling()
     
     def _apply_styling(self):
-        """Apply styling to search widget"""
+        """Apply light styling to search widget"""
         self.setStyleSheet("""
             TreeSearchWidget {
-                background-color: #404040;
-                border: 1px solid #555;
-                border-radius: 3px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 8px;
             }
             QLineEdit {
-                background-color: #505050;
-                border: 1px solid #666;
-                border-radius: 3px;
-                padding: 4px;
-                color: white;
+                background-color: #ffffff;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 8px;
+                color: #495057;
+                font-size: 13px;
             }
             QLineEdit:focus {
-                border-color: #4a90e2;
+                border-color: #1976d2;
+                box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
             }
             QPushButton {
-                background-color: #4a4a4a;
-                border: 1px solid #666;
-                border-radius: 3px;
-                color: white;
+                background-color: #ffffff;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                color: #6c757d;
                 font-weight: bold;
+                padding: 8px;
             }
             QPushButton:hover {
-                background-color: #5a5a5a;
+                background-color: #e9ecef;
+                border-color: #adb5bd;
+                color: #495057;
             }
             QComboBox {
-                background-color: #505050;
-                border: 1px solid #666;
-                border-radius: 3px;
-                padding: 2px 4px;
-                color: white;
+                background-color: #ffffff;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 6px 12px;
+                color: #495057;
+                font-size: 13px;
+            }
+            QComboBox:hover {
+                border-color: #1976d2;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                width: 12px;
+                height: 12px;
             }
             QLabel {
-                color: white;
+                color: #495057;
+                font-weight: 500;
             }
         """)
     
@@ -300,7 +319,7 @@ class EnhancedTreeWidget(QTreeWidget):
     """
     Enhanced tree widget with search, filtering, and context menus
     Provides comprehensive navigation for ARXML components
-    COMPLETE WORKING IMPLEMENTATION
+    COMPLETE WORKING IMPLEMENTATION WITH FIXED COLORS
     """
     
     # Signals
@@ -355,32 +374,52 @@ class EnhancedTreeWidget(QTreeWidget):
         self._apply_tree_styling()
     
     def _apply_tree_styling(self):
-        """Apply styling to tree widget"""
+        """Apply light styling to tree widget with good contrast"""
         self.setStyleSheet("""
             QTreeWidget {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #555;
-                selection-background-color: #4a90e2;
-                selection-color: white;
+                background-color: #ffffff;
+                color: #333333;
+                border: 1px solid #cccccc;
+                selection-background-color: #e3f2fd;
+                selection-color: #1976d2;
                 outline: none;
+                font-size: 13px;
             }
             QTreeWidget::item {
-                height: 24px;
+                height: 28px;
                 border: none;
-                padding: 2px;
+                padding: 4px;
+                color: #333333;
             }
             QTreeWidget::item:hover {
-                background-color: #4a4a4a;
+                background-color: #f5f5f5;
+                color: #333333;
             }
             QTreeWidget::item:selected {
-                background-color: #4a90e2;
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: bold;
             }
             QTreeWidget::item:selected:active {
-                background-color: #4a90e2;
+                background-color: #e3f2fd;
+                color: #1976d2;
             }
             QTreeWidget::item:selected:!active {
-                background-color: #666;
+                background-color: #f5f5f5;
+                color: #666666;
+            }
+            QTreeWidget::branch {
+                background-color: #ffffff;
+            }
+            QTreeWidget::branch:hover {
+                background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #f5f5f5;
+                color: #333333;
+                padding: 8px;
+                border: 1px solid #cccccc;
+                font-weight: bold;
             }
         """)
     
