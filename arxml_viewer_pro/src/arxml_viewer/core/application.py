@@ -190,7 +190,7 @@ class ARXMLViewerApplication(QObject):
     
     def open_file(self, file_path: str) -> bool:
         """
-        Open and parse ARXML file
+        Open and parse ARXML file - SIMPLIFIED VERSION
         
         Args:
             file_path: Path to ARXML file
@@ -198,92 +198,52 @@ class ARXMLViewerApplication(QObject):
         Returns:
             True if file opening started successfully
         """
+        from pathlib import Path
+        
         file_path = str(Path(file_path).resolve())
+        print(f"🔧 Opening file: {file_path}")
         
-        # Validate file
+        # Simple validation
         if not Path(file_path).exists():
-            error_msg = f"Error: File not found: {file_path}"
-            self.logger.error(error_msg)
-            if self.main_window:
-                QMessageBox.critical(self.main_window, "File Error", error_msg)
+            print(f"❌ File not found: {file_path}")
             return False
-        
-        # Check file size
-        file_size_mb = Path(file_path).stat().st_size / (1024 * 1024)
-        if file_size_mb > self.config_manager.config.max_file_size_mb:
-            self.logger.warning(f"Large file ({file_size_mb:.1f} MB)")
         
         # Close current file if open
         if self.current_file:
             self.close_file()
         
-        # Start parsing
-        self._start_parsing(file_path)
-        return True
-    
-    def _start_parsing(self, file_path: str):
-        """Start background parsing of ARXML file"""
-        self.logger.info(f"Starting to parse file: {file_path}")
-        self.parsing_started.emit(file_path)
-        
-        # For now, do synchronous parsing (async parsing in later versions)
         try:
+            print("🔧 Starting parser...")
             packages, metadata = self.parser.parse_file(file_path)
-            self._on_parsing_finished(packages, metadata)
+            print(f"✅ Parsed {len(packages)} packages")
+            
+            # Store results
             self.current_file = file_path
-        except Exception as e:
-            self._on_parsing_error(str(e))
-    
-    def _on_parsing_finished(self, packages: List[Package], metadata: Dict[str, Any]):
-        """Handle successful parsing completion - Enhanced for Day 3"""
-        self.logger.info(f"Parsing completed successfully: {len(packages)} packages")
-        
-        self.current_packages = packages
-        self.current_metadata = metadata
-        
-        # Day 3 - Build search index
-        try:
-            self.search_engine.build_index(packages)
-            self.search_index_ready = True
+            self.current_packages = packages
+            self.current_metadata = metadata
             
-            # Emit search index built signal with statistics
-            search_stats = self.search_engine.get_statistics()
-            self.search_index_built.emit(search_stats)
+            # Build search index
+            try:
+                self.search_engine.build_index(packages)
+                self.search_index_ready = True
+                print("✅ Search index built")
+            except Exception as e:
+                print(f"⚠️ Search index build failed: {e}")
+                self.search_index_ready = False
             
-            self.logger.info(f"Search index built: {search_stats.get('indexed_words', 0)} words indexed")
+            # Notify UI
+            self.file_opened.emit(file_path)
+            self.parsing_finished.emit(packages, metadata)
+            
+            print("✅ File opened successfully")
+            return True
             
         except Exception as e:
-            self.logger.error(f"Failed to build search index: {e}")
-            self.search_index_ready = False
-        
-        # Add to recent files
-        if self.current_file:
-            self.config_manager.add_recent_file(self.current_file)
-            
-            # Update recent files in main window
-            if self.main_window:
-                recent_files = self.config_manager.config.recent_files
-                self.main_window.update_recent_files(recent_files)
-        
-        # Emit signals
-        self.file_opened.emit(self.current_file)
-        self.parsing_finished.emit(packages, metadata)
-        
-        self.logger.info(f"Successfully parsed {len(packages)} packages")
-        for pkg in packages:
-            components = pkg.get_all_components(recursive=True)
-            self.logger.debug(f"Package {pkg.short_name}: {len(components)} components")
-    
-    def _on_parsing_error(self, error_message: str):
-        """Handle parsing error"""
-        self.logger.error(f"Parsing failed: {error_message}")
-        
-        self.current_file = None
-        self.current_packages = []
-        self.current_metadata = {}
-        self.search_index_ready = False
-        
-        self.parsing_failed.emit(error_message)
+            print(f"❌ Parsing failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.parsing_failed.emit(str(e))
+            return False
     
     def close_file(self):
         """Close current file - Enhanced for Day 3"""
@@ -354,112 +314,6 @@ class ARXMLViewerApplication(QObject):
         except Exception as e:
             self.logger.warning(f"Failed to save service states: {e}")
     
-    def _load_service_states(self):
-        """Load Day 3 service states from configuration"""
-        try:
-            config = self.config_manager.config
-            
-            # Load search history
-            if hasattr(config, 'search_history') and config.search_history:
-                self.search_engine.search_history = config.search_history
-            
-            # Load saved filters
-            if hasattr(config, 'saved_filters') and config.saved_filters:
-                self.filter_manager.import_filters_from_json(config.saved_filters)
-            
-            self.logger.debug("Service states loaded")
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to load service states: {e}")
-    
-    # ===== Day 3 Service Methods =====
-    
-    def perform_search(self, query: str, scope: SearchScope = SearchScope.ALL, 
-                      mode: SearchMode = SearchMode.CONTAINS, max_results: int = 50) -> List:
-        """
-        Perform search using search engine
-        
-        Args:
-            query: Search query string
-            scope: Search scope
-            mode: Search mode
-            max_results: Maximum number of results
-            
-        Returns:
-            List of search results
-        """
-        if not self.search_index_ready:
-            self.logger.warning("Search index not ready")
-            return []
-        
-        try:
-            results = self.search_engine.search(
-                query=query,
-                scope=scope,
-                mode=mode,
-                max_results=max_results
-            )
-            
-            self.last_search_results = results
-            self.logger.debug(f"Search performed: '{query}' -> {len(results)} results")
-            
-            return results
-            
-        except Exception as e:
-            self.logger.error(f"Search failed: {e}")
-            return []
-    
-    def apply_filter(self, filter_name: str) -> int:
-        """
-        Apply a filter and return number of results
-        
-        Args:
-            filter_name: Name of filter to apply
-            
-        Returns:
-            Number of items after filtering
-        """
-        if not self.current_packages:
-            return 0
-        
-        try:
-            # Apply quick filter
-            self.filter_manager.apply_quick_filter(filter_name)
-            
-            # Get all components for filtering
-            all_components = []
-            for package in self.current_packages:
-                all_components.extend(package.get_all_components(recursive=True))
-            
-            # Apply filter
-            filtered_components = self.filter_manager.filter_components(all_components)
-            
-            # Track active filter
-            if filter_name not in self.active_filters:
-                self.active_filters.append(filter_name)
-            
-            # Emit signal
-            self.filter_applied.emit(filter_name, len(filtered_components))
-            
-            self.logger.debug(f"Filter applied: {filter_name} -> {len(filtered_components)} results")
-            
-            return len(filtered_components)
-            
-        except Exception as e:
-            self.logger.error(f"Filter application failed: {e}")
-            return 0
-    
-    def clear_filters(self):
-        """Clear all active filters"""
-        try:
-            self.filter_manager.clear_filters()
-            self.active_filters.clear()
-            
-            self.logger.debug("All filters cleared")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to clear filters: {e}")
-    
     def _clear_search_state(self):
         """Clear search-related state"""
         self.last_search_results = []
@@ -476,81 +330,6 @@ class ARXMLViewerApplication(QObject):
         # Clear filter manager state
         if self.filter_manager:
             self.filter_manager.clear_filters()
-    
-    def get_component_by_uuid(self, uuid: str):
-        """Get component by UUID from current packages"""
-        for package in self.current_packages:
-            for component in package.get_all_components(recursive=True):
-                if component.uuid == uuid:
-                    return component
-        return None
-    
-    def get_port_by_uuid(self, uuid: str):
-        """Get port by UUID from current packages"""
-        for package in self.current_packages:
-            for component in package.get_all_components(recursive=True):
-                for port in component.all_ports:
-                    if port.uuid == uuid:
-                        return port
-        return None
-    
-    def get_package_by_uuid(self, uuid: str):
-        """Get package by UUID from current packages"""
-        def search_package(pkg):
-            if pkg.uuid == uuid:
-                return pkg
-            for sub_pkg in pkg.sub_packages:
-                result = search_package(sub_pkg)
-                if result:
-                    return result
-            return None
-        
-        for package in self.current_packages:
-            result = search_package(package)
-            if result:
-                return result
-        return None
-    
-    def get_application_statistics(self) -> Dict[str, Any]:
-        """Get comprehensive application statistics"""
-        stats = {
-            'file_info': {
-                'current_file': self.current_file,
-                'file_open': self.is_file_open,
-                'packages_loaded': len(self.current_packages)
-            },
-            'parsing_stats': self.current_metadata.get('statistics', {}),
-            'search_stats': self.search_engine.get_statistics() if self.search_engine else {},
-            'filter_stats': {
-                'active_filters': len(self.active_filters),
-                'saved_filters': len(self.filter_manager.saved_filter_sets) if self.filter_manager else 0
-            }
-        }
-        
-        # Add component statistics
-        if self.current_packages:
-            all_components = []
-            total_ports = 0
-            
-            for package in self.current_packages:
-                components = package.get_all_components(recursive=True)
-                all_components.extend(components)
-                total_ports += sum(comp.port_count for comp in components)
-            
-            # Count by type
-            component_types = {}
-            for comp in all_components:
-                comp_type = comp.component_type.name
-                component_types[comp_type] = component_types.get(comp_type, 0) + 1
-            
-            stats['component_stats'] = {
-                'total_components': len(all_components),
-                'total_ports': total_ports,
-                'component_types': component_types,
-                'average_ports_per_component': total_ports / len(all_components) if all_components else 0
-            }
-        
-        return stats
     
     # ===== Service Event Handlers =====
     
@@ -575,75 +354,6 @@ class ARXMLViewerApplication(QObject):
         """Handle navigation state change"""
         self.logger.debug(f"Navigation state changed: {nav_state}")
     
-    # ===== Public API Methods =====
-    
-    def search_components(self, query: str, **kwargs) -> List:
-        """Public API for component search"""
-        return self.perform_search(query, scope=SearchScope.COMPONENTS, **kwargs)
-    
-    def search_ports(self, query: str, **kwargs) -> List:
-        """Public API for port search"""
-        return self.perform_search(query, scope=SearchScope.PORTS, **kwargs)
-    
-    def search_packages(self, query: str, **kwargs) -> List:
-        """Public API for package search"""
-        return self.perform_search(query, scope=SearchScope.PACKAGES, **kwargs)
-    
-    def filter_by_component_type(self, component_type: str) -> int:
-        """Filter by component type"""
-        filter_map = {
-            'application': 'application',
-            'composition': 'composition', 
-            'service': 'service'
-        }
-        
-        filter_key = filter_map.get(component_type.lower())
-        if filter_key:
-            return self.apply_filter(filter_key)
-        else:
-            self.logger.warning(f"Unknown component type filter: {component_type}")
-            return 0
-    
-    def get_search_suggestions(self, partial_query: str, max_suggestions: int = 10) -> List[str]:
-        """Get search suggestions"""
-        if self.search_engine and self.search_index_ready:
-            return self.search_engine.get_search_suggestions(partial_query, max_suggestions)
-        return []
-    
-    def export_search_results(self, file_path: str, format: str = "json") -> bool:
-        """Export last search results to file"""
-        if not self.last_search_results:
-            return False
-        
-        try:
-            if format.lower() == "json":
-                import json
-                
-                export_data = []
-                for result in self.last_search_results:
-                    export_data.append({
-                        'item_name': result.item_name,
-                        'item_type': result.item_type,
-                        'match_field': result.match_field,
-                        'relevance_score': result.relevance_score,
-                        'parent_package': result.parent_package,
-                        'item_uuid': result.item_uuid
-                    })
-                
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(export_data, f, indent=2)
-                
-                self.logger.info(f"Search results exported to {file_path}")
-                return True
-            
-            else:
-                self.logger.error(f"Unsupported export format: {format}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Failed to export search results: {e}")
-            return False
-    
     @property
     def is_file_open(self) -> bool:
         """Check if a file is currently open"""
@@ -654,17 +364,6 @@ class ARXMLViewerApplication(QObject):
         """Check if search functionality is ready"""
         return self.search_index_ready
     
-    @property
-    def has_active_filters(self) -> bool:
-        """Check if there are active filters"""
-        return len(self.active_filters) > 0
-    
-    def get_parsing_statistics(self) -> Dict[str, Any]:
-        """Get parsing statistics for current file"""
-        if self.parser:
-            return self.parser.get_parsing_statistics()
-        return {}
-    
     def get_current_packages(self) -> List[Package]:
         """Get currently loaded packages"""
         return self.current_packages.copy()
@@ -672,20 +371,3 @@ class ARXMLViewerApplication(QObject):
     def get_current_metadata(self) -> Dict[str, Any]:
         """Get current file metadata"""
         return self.current_metadata.copy()
-    
-    # ===== Initialization Enhancement =====
-    
-    def initialize_services(self):
-        """Initialize Day 3 services with saved states"""
-        self._load_service_states()
-        
-        # Additional service initialization can be added here
-        self.logger.debug("Day 3 services initialized")
-    
-    def __del__(self):
-        """Cleanup when application is destroyed"""
-        try:
-            # Save states before destruction
-            self._save_service_states()
-        except:
-            pass

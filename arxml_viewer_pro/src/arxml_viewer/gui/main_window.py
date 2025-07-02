@@ -870,16 +870,22 @@ class MainWindow(QMainWindow):
     # ===== Existing Event Handlers (Updated for Day 3) =====
     
     def open_file_dialog(self):
-        """Open file selection dialog"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Open ARXML File",
             "",
-            FileConstants.ARXML_FILTER
+            "ARXML Files (*.arxml *.xml);;All Files (*.*)"
         )
         
         if file_path:
-            self.open_file_requested.emit()
+            print(f"🔧 Selected file: {file_path}")  # Debug
+            if self.app_controller:
+                success = self.app_controller.open_file(file_path)
+                if not success:
+                    QMessageBox.critical(self, "Error", f"Failed to open file: {file_path}")
+            else:
+                print("❌ No app controller!")
+
     
     def on_file_opened(self, file_path: str):
         """Handle file opened event"""
