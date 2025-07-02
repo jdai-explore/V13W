@@ -1,15 +1,14 @@
 # src/arxml_viewer/core/application.py
 """
 Core Application Controller - Main application logic and coordination
-Updated to actually show the GUI window
 """
 
 import sys
 from typing import Optional, List, Dict, Any
 from pathlib import Path
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QProgressDialog
-from PyQt5.QtCore import QTimer, pyqtSignal, QThread, QObject
-from PyQt5.QtGui import QCloseEvent
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QProgressDialog
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject
+from PyQt6.QtGui import QCloseEvent
 
 from ..parsers.arxml_parser import ARXMLParser, ARXMLParsingError
 from ..models.package import Package
@@ -69,51 +68,12 @@ class ARXMLViewerApplication(QObject):
         self.parse_thread: Optional[QThread] = None
         self.parse_worker: Optional[ParseWorker] = None
         
-        # Create the main window
-        self.main_window = self._create_main_window()
+        # Main window will be created in Day 2
+        self.main_window = None
         
-        # Setup connections
-        self._setup_connections()
-        
+        # Setup connections (will be enabled when GUI is ready)
         if show_splash:
             self._show_splash_screen()
-    
-    def _create_main_window(self):
-        """Create and configure the main window"""
-        try:
-            from ..gui.main_window import MainWindow
-            main_window = MainWindow(app_controller=self)
-            
-            # Connect main window signals
-            main_window.open_file_requested.connect(self._on_open_file_requested)
-            main_window.close_file_requested.connect(self.close_file)
-            main_window.exit_requested.connect(self.quit)
-            
-            self.logger.info("Main window created successfully")
-            return main_window
-            
-        except ImportError as e:
-            self.logger.error(f"Failed to import main window: {e}")
-            print("❌ Failed to create main window - GUI components missing")
-            return None
-        except Exception as e:
-            self.logger.error(f"Failed to create main window: {e}")
-            print(f"❌ Failed to create main window: {e}")
-            return None
-    
-    def _setup_connections(self):
-        """Setup signal/slot connections"""
-        if self.main_window:
-            # Connect application signals to main window
-            self.file_opened.connect(self.main_window.on_file_opened)
-            self.file_closed.connect(self.main_window.on_file_closed)
-            self.parsing_started.connect(self.main_window.on_parsing_started)
-            self.parsing_finished.connect(self.main_window.on_parsing_finished)
-            self.parsing_failed.connect(self.main_window.on_parsing_failed)
-            
-            # Update recent files
-            recent_files = self.config_manager.config.recent_files
-            self.main_window.update_recent_files(recent_files)
     
     def _show_splash_screen(self):
         """Show application splash screen"""
@@ -126,15 +86,8 @@ class ARXMLViewerApplication(QObject):
             self.main_window.show()
             self.main_window.raise_()
             self.main_window.activateWindow()
-            self.logger.info("Main window displayed")
         else:
-            print("❌ Cannot show main window - GUI not created")
-    
-    def _on_open_file_requested(self):
-        """Handle open file request from main window"""
-        # Get file path from main window's file dialog
-        # This is handled by the main window's open_file_dialog method
-        pass
+            print("GUI not yet implemented - Day 2 task")
     
     def open_file(self, file_path: str) -> bool:
         """
@@ -150,16 +103,13 @@ class ARXMLViewerApplication(QObject):
         
         # Validate file
         if not Path(file_path).exists():
-            error_msg = f"Error: File not found: {file_path}"
-            self.logger.error(error_msg)
-            if self.main_window:
-                QMessageBox.critical(self.main_window, "File Error", error_msg)
+            print(f"Error: File not found: {file_path}")
             return False
         
         # Check file size
         file_size_mb = Path(file_path).stat().st_size / (1024 * 1024)
         if file_size_mb > self.config_manager.config.max_file_size_mb:
-            self.logger.warning(f"Large file ({file_size_mb:.1f} MB)")
+            print(f"Warning: Large file ({file_size_mb:.1f} MB)")
         
         # Close current file if open
         if self.current_file:
@@ -172,9 +122,8 @@ class ARXMLViewerApplication(QObject):
     def _start_parsing(self, file_path: str):
         """Start background parsing of ARXML file"""
         self.logger.info(f"Starting to parse file: {file_path}")
-        self.parsing_started.emit(file_path)
         
-        # For now, do synchronous parsing (async parsing in later versions)
+        # For Day 1, do synchronous parsing
         try:
             packages, metadata = self.parser.parse_file(file_path)
             self._on_parsing_finished(packages, metadata)
@@ -192,20 +141,15 @@ class ARXMLViewerApplication(QObject):
         # Add to recent files
         if self.current_file:
             self.config_manager.add_recent_file(self.current_file)
-            
-            # Update recent files in main window
-            if self.main_window:
-                recent_files = self.config_manager.config.recent_files
-                self.main_window.update_recent_files(recent_files)
         
         # Emit signals
         self.file_opened.emit(self.current_file)
         self.parsing_finished.emit(packages, metadata)
         
-        self.logger.info(f"Successfully parsed {len(packages)} packages")
+        print(f"✅ Successfully parsed {len(packages)} packages")
         for pkg in packages:
             components = pkg.get_all_components(recursive=True)
-            self.logger.debug(f"Package {pkg.short_name}: {len(components)} components")
+            print(f"   📦 {pkg.short_name}: {len(components)} components")
     
     def _on_parsing_error(self, error_message: str):
         """Handle parsing error"""
@@ -216,6 +160,7 @@ class ARXMLViewerApplication(QObject):
         self.current_metadata = {}
         
         self.parsing_failed.emit(error_message)
+        print(f"❌ Parsing failed: {error_message}")
     
     def close_file(self):
         """Close current file"""
@@ -244,17 +189,8 @@ class ARXMLViewerApplication(QObject):
     
     def _save_configuration(self):
         """Save current application state to configuration"""
-        # Save window geometry and state if main window exists
-        if self.main_window:
-            geometry = self.main_window.geometry()
-            self.config_manager.update_config(
-                window_geometry={
-                    'x': geometry.x(),
-                    'y': geometry.y(),
-                    'width': geometry.width(),
-                    'height': geometry.height()
-                }
-            )
+        # Save basic configuration for now
+        pass
     
     @property
     def is_file_open(self) -> bool:

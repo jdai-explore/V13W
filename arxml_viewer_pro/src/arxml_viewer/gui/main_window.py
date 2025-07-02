@@ -1,7 +1,7 @@
-# src/arxml_viewer/gui/main_window_pyqt5.py
+# src/arxml_viewer/gui/main_window.py
 """
-Main Window - PyQt5 Version
-Copy this content to src/arxml_viewer/gui/main_window.py
+Main Window - PyQt5 Version with Fixed Rendering Hints
+Professional main window with three-panel layout for ARXML Viewer Pro
 """
 
 import sys
@@ -16,9 +16,9 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItem, QStackedWidget, QApplication
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QKeySequence, QFont
+from PyQt5.QtGui import QKeySequence, QFont, QPainter
 
-from .graphics.graphics_scene_pyqt5 import ComponentDiagramScene
+from .graphics.graphics_scene import ComponentDiagramScene
 from ..utils.constants import AppConstants, UIConstants, FileConstants
 from ..utils.logger import get_logger
 
@@ -270,7 +270,8 @@ class MainWindow(QMainWindow):
         self.graphics_scene = ComponentDiagramScene()
         self.graphics_view = QGraphicsView(self.graphics_scene)
         self.graphics_view.setDragMode(QGraphicsView.RubberBandDrag)
-        self.graphics_view.setRenderHint(self.graphics_view.Antialiasing)
+        # Fixed PyQt5 rendering hint access
+        self.graphics_view.setRenderHint(QPainter.Antialiasing)
         
         # Connect scene signals
         self.graphics_scene.component_selected.connect(self._on_component_selected)

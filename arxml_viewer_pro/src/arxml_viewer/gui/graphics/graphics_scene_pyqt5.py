@@ -1,7 +1,7 @@
-# src/arxml_viewer/gui/graphics/graphics_scene.py
+# src/arxml_viewer/gui/graphics/graphics_scene_pyqt5.py
 """
-Graphics Scene - PyQt5 Compatible Version for Component Visualization
-This file replaces the PyQt6 version to work with PyQt5
+Graphics Scene - PyQt5 Version for Component Visualization
+Professional QGraphicsScene for AUTOSAR component visualization
 """
 
 import math
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsItem
 )
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal
-from PyQt5.QtGui import QColor, QPen, QBrush, QFont, QPainter
+from PyQt5.QtGui import QColor, QPen, QBrush, QFont
 
 from ...models.component import Component
 from ...models.package import Package
@@ -19,7 +19,7 @@ from ...utils.constants import AppConstants, UIConstants
 from ...utils.logger import get_logger
 
 class ComponentGraphicsItem(QGraphicsRectItem):
-    """Custom graphics item for component representation"""
+    """Custom graphics item for component representation - PyQt5 version"""
     
     def __init__(self, component: Component, parent=None):
         super().__init__(parent)
@@ -128,7 +128,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
         self.logger.debug(f"Component selected: {self.component.short_name}")
 
 class PortGraphicsItem(QGraphicsEllipseItem):
-    """Custom graphics item for port representation"""
+    """Custom graphics item for port representation - PyQt5 version"""
     
     def __init__(self, port, parent=None):
         super().__init__(parent)
@@ -175,7 +175,7 @@ class PortGraphicsItem(QGraphicsEllipseItem):
         return tooltip
 
 class ComponentDiagramScene(QGraphicsScene):
-    """Custom graphics scene for component diagram visualization"""
+    """Custom graphics scene for component diagram visualization - PyQt5 version"""
     
     # Signals
     component_selected = pyqtSignal(object)  # Component object
@@ -319,3 +319,111 @@ class ComponentDiagramScene(QGraphicsScene):
         
         # Reset scene rect
         self.setSceneRect(0, 0, 2000, 1500)
+
+# Additional PyQt5 specific graphics utilities
+
+class ConnectionGraphicsItem(QGraphicsLineItem):
+    """Custom graphics item for connection visualization - PyQt5 version"""
+    
+    def __init__(self, connection, start_point: QPointF, end_point: QPointF, parent=None):
+        super().__init__(parent)
+        
+        self.connection = connection
+        
+        # Set line
+        self.setLine(start_point.x(), start_point.y(), end_point.x(), end_point.y())
+        
+        # Style the connection
+        pen = QPen(QColor(100, 100, 100), 2)
+        pen.setStyle(Qt.SolidLine)
+        self.setPen(pen)
+        
+        # Make selectable
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        
+        # Set tooltip
+        self.setToolTip(f"Connection: {connection.short_name or 'Unnamed'}")
+    
+    def paint(self, painter, option, widget=None):
+        """Custom paint method for arrow heads"""
+        super().paint(painter, option, widget)
+        
+        # TODO: Add arrow head drawing for connection direction
+        pass
+
+class LayoutManager:
+    """Layout manager for component positioning - PyQt5 compatible"""
+    
+    @staticmethod
+    def grid_layout(components: List[Component], spacing: int = 150) -> Dict[str, Tuple[float, float]]:
+        """Calculate grid layout positions for components"""
+        positions = {}
+        cols = math.ceil(math.sqrt(len(components)))
+        
+        for i, component in enumerate(components):
+            row = i // cols
+            col = i % cols
+            
+            x = col * (UIConstants.COMPONENT_MIN_WIDTH + spacing)
+            y = row * (UIConstants.COMPONENT_MIN_HEIGHT + spacing)
+            
+            positions[component.uuid] = (x, y)
+        
+        return positions
+    
+    @staticmethod
+    def hierarchical_layout(components: List[Component], spacing: int = 200) -> Dict[str, Tuple[float, float]]:
+        """Calculate hierarchical layout positions (future implementation)"""
+        # Placeholder for hierarchical layout algorithm
+        return LayoutManager.grid_layout(components, spacing)
+
+class SceneManager:
+    """Scene management utilities for PyQt5"""
+    
+    def __init__(self, scene: ComponentDiagramScene):
+        self.scene = scene
+        self.logger = get_logger(__name__)
+    
+    def export_scene_to_image(self, file_path: str, format: str = "PNG"):
+        """Export scene to image file"""
+        try:
+            from PyQt5.QtGui import QPixmap, QPainter
+            
+            # Get scene rect
+            rect = self.scene.sceneRect()
+            
+            # Create pixmap
+            pixmap = QPixmap(int(rect.width()), int(rect.height()))
+            pixmap.fill(QColor(45, 45, 45))  # Dark background
+            
+            # Render scene to pixmap
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            self.scene.render(painter)
+            painter.end()
+            
+            # Save to file
+            pixmap.save(file_path, format)
+            self.logger.info(f"Scene exported to {file_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to export scene: {e}")
+            return False
+    
+    def print_scene(self, printer):
+        """Print scene to printer (PyQt5 compatible)"""
+        try:
+            from PyQt5.QtGui import QPainter
+            
+            painter = QPainter(printer)
+            painter.setRenderHint(QPainter.Antialiasing)
+            self.scene.render(painter)
+            painter.end()
+            
+            self.logger.info("Scene printed successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to print scene: {e}")
+            return False
