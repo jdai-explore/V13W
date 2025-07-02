@@ -1,9 +1,7 @@
-# Create the missing requirements.txt
-cat > requirements.txt << 'EOF'
 # ARXML Viewer Pro - Core Dependencies
 
 # GUI Framework
-PyQt6>=6.5.0
+PyQt5>=5.15.0
 
 # XML Processing
 lxml>=4.9.3
@@ -27,4 +25,3 @@ numpy>=1.24.0
 # Optional: Advanced features
 Pillow>=10.0.0
 reportlab>=4.0.4
-EOF

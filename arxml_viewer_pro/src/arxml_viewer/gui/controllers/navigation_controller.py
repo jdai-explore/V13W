@@ -1,24 +1,6 @@
-#!/usr/bin/env python3
 """
-Nuclear Navigation Controller Fix
-Completely replaces the navigation controller with a clean version
-"""
-
-import os
-from pathlib import Path
-
-def create_clean_navigation_controller():
-    """Create a completely clean navigation controller"""
-    
-    project_root = Path.cwd()
-    nav_controller_path = project_root / "src" / "arxml_viewer" / "gui" / "controllers" / "navigation_controller.py"
-    
-    print(f"🔧 Completely replacing: {nav_controller_path}")
-    
-    # Create a clean, working navigation controller
-    clean_nav_controller = '''"""
 Navigation Controller for ARXML Viewer Pro
-Clean version without any problematic imports
+Handles navigation state management and tree-diagram synchronization
 """
 from typing import Optional, List, Dict, Any, Callable
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -27,8 +9,8 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 
-from arxml_viewer.models.component import Component
-from arxml_viewer.models.package import Package
+from ...models.component import Component
+from ...models.package import Package
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +121,10 @@ class NavigationController(QObject):
         self.selection_handlers: List[Callable] = []
         self.navigation_handlers: List[Callable] = []
         
+        # Item mappings for navigation
+        self._item_to_object: Dict[Any, Any] = {}
+        self._object_to_item: Dict[str, Any] = {}  # uuid -> item
+        
         logger.info("Navigation controller initialized")
     
     def set_views(self, tree_widget: QWidget = None, graphics_scene: QWidget = None, 
@@ -155,7 +141,7 @@ class NavigationController(QObject):
     
     def navigate_to_package(self, package: Package, add_to_history: bool = True) -> None:
         """Navigate to a specific package"""
-        logger.info(f"Navigating to package: {package.name}")
+        logger.info(f"Navigating to package: {package.short_name}")
         
         # Update current state
         old_state = self.current_state
@@ -183,7 +169,7 @@ class NavigationController(QObject):
     
     def select_component(self, component: Component, add_to_history: bool = True) -> None:
         """Select a specific component"""
-        logger.info(f"Selecting component: {component.name}")
+        logger.info(f"Selecting component: {component.short_name}")
         
         # Update current state
         old_state = self.current_state
@@ -238,7 +224,7 @@ class NavigationController(QObject):
             scroll_position=scroll_position if scroll_position is not None else old_state.scroll_position
         )
     
-    def go_back(self) -> bool:
+    def navigate_back(self) -> bool:
         """Navigate to previous state"""
         if not self.history.can_go_back():
             return False
@@ -253,7 +239,7 @@ class NavigationController(QObject):
             return True
         return False
     
-    def go_forward(self) -> bool:
+    def navigate_forward(self) -> bool:
         """Navigate to next state"""
         if not self.history.can_go_forward():
             return False
@@ -286,13 +272,41 @@ class NavigationController(QObject):
         """Get currently selected component"""
         return self.current_state.selected_component
     
-    def can_go_back(self) -> bool:
+    def can_navigate_back(self) -> bool:
         """Check if back navigation is possible"""
         return self.history.can_go_back()
     
-    def can_go_forward(self) -> bool:
+    def can_navigate_forward(self) -> bool:
         """Check if forward navigation is possible"""
         return self.history.can_go_forward()
+    
+    def get_breadcrumb_path(self) -> List[str]:
+        """Get current breadcrumb path"""
+        return self.current_state.breadcrumb_path.copy()
+    
+    def register_tree_item(self, tree_item: Any, data_object: Any) -> None:
+        """Register tree item with its data object for navigation"""
+        self._item_to_object[tree_item] = data_object
+        if hasattr(data_object, 'uuid'):
+            self._object_to_item[data_object.uuid] = tree_item
+    
+    def clear_mappings(self) -> None:
+        """Clear all item mappings"""
+        self._item_to_object.clear()
+        self._object_to_item.clear()
+    
+    def select_object_by_uuid(self, uuid: str) -> bool:
+        """Select object by UUID in tree view"""
+        if uuid in self._object_to_item:
+            tree_item = self._object_to_item[uuid]
+            data_object = self._item_to_object.get(tree_item)
+            if data_object:
+                if isinstance(data_object, Component):
+                    self.select_component(data_object)
+                elif isinstance(data_object, Package):
+                    self.navigate_to_package(data_object)
+                return True
+        return False
     
     def add_selection_handler(self, handler: Callable[[Component], None]) -> None:
         """Add a selection change handler"""
@@ -308,8 +322,8 @@ class NavigationController(QObject):
         current = package
         
         while current:
-            path.insert(0, current.name)
-            current = current.parent if hasattr(current, 'parent') else None
+            path.insert(0, current.short_name)
+            current = getattr(current, 'parent_package', None)
         
         return path
     
@@ -379,103 +393,3 @@ class NavigationSync:
                     view.sync_navigation(navigation_target)
                 except Exception as e:
                     logger.error(f"Error syncing navigation to view: {e}")
-'''
-    
-    try:
-        # Backup the old file
-        if nav_controller_path.exists():
-            backup_path = nav_controller_path.with_suffix('.py.backup')
-            os.rename(nav_controller_path, backup_path)
-            print(f"📁 Backed up old file to: {backup_path}")
-        
-        # Write the clean version
-        with open(nav_controller_path, 'w', encoding='utf-8') as f:
-            f.write(clean_nav_controller)
-        
-        print(f"✅ Created clean navigation controller!")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Error creating clean navigation controller: {e}")
-        return False
-
-def verify_clean_import():
-    """Verify the clean navigation controller imports properly"""
-    try:
-        import sys
-        from pathlib import Path
-        
-        # Add src to path
-        src_path = Path.cwd() / "src"
-        if str(src_path) not in sys.path:
-            sys.path.insert(0, str(src_path))
-        
-        # Clear any cached imports
-        module_name = 'arxml_viewer.gui.controllers.navigation_controller'
-        if module_name in sys.modules:
-            del sys.modules[module_name]
-        
-        # Try import
-        from arxml_viewer.gui.controllers.navigation_controller import NavigationController
-        print("✅ NavigationController imports successfully!")
-        
-        # Try to create
-        try:
-            nc = NavigationController()
-            print("✅ NavigationController created successfully!")
-            return True
-        except Exception as e:
-            print(f"⚠️  NavigationController import works (Qt issue: {str(e)[:40]}...)")
-            return True  # Import works, Qt initialization is separate issue
-        
-    except Exception as e:
-        print(f"❌ Import still failed: {e}")
-        return False
-
-def cleanup_extra_files():
-    """Clean up the extra fix files"""
-    project_root = Path.cwd()
-    
-    files_to_remove = [
-        'final_nav_fix.py',
-        'fix_nav_controller.py'
-    ]
-    
-    for filename in files_to_remove:
-        file_path = project_root / filename
-        if file_path.exists():
-            try:
-                os.remove(file_path)
-                print(f"🗑️  Removed: {filename}")
-            except Exception as e:
-                print(f"⚠️  Could not remove {filename}: {e}")
-
-def main():
-    """Main function"""
-    print("🚀 Nuclear Navigation Controller Fix")
-    print("=" * 50)
-    
-    print("\n1. Creating clean navigation controller...")
-    success = create_clean_navigation_controller()
-    
-    if success:
-        print("\n2. Verifying clean import...")
-        import_success = verify_clean_import()
-        
-        if import_success:
-            print("\n3. Cleaning up extra files...")
-            cleanup_extra_files()
-            
-            print("\n🎉 PERFECT! Navigation Controller is completely fixed!")
-            print("🚀 Run the final validation:")
-            print("   python src/validate_day3_clean.py")
-            print("\nYou should now get 7/7 tests passing!")
-        else:
-            print("\n⚠️  Import verification failed")
-    else:
-        print("\n❌ Could not create clean navigation controller")
-    
-    return success
-
-if __name__ == "__main__":
-    main()
