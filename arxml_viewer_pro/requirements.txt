@@ -1,6 +1,6 @@
 # ARXML Viewer Pro - Core Dependencies
 
-# GUI Framework
+# GUI Framework (PyQt5)
 PyQt5>=5.15.0
 
 # XML Processing

@@ -1,0 +1,80 @@
+"""
+Navigation Controller for ARXML Viewer Pro - Minimal Version
+"""
+from typing import Optional, List, Dict, Any
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QWidget
+
+from ...models.component import Component
+from ...models.package import Package
+
+
+class NavigationController(QObject):
+    """Minimal navigation controller for Day 3 validation"""
+    
+    # Basic signals
+    component_selected = pyqtSignal(object)
+    package_changed = pyqtSignal(object)
+    
+    def __init__(self, parent: Optional[QObject] = None):
+        super().__init__(parent)
+        self.current_component = None
+        self.current_package = None
+    
+    def select_component(self, component: Component) -> None:
+        """Select a component"""
+        self.current_component = component
+        self.component_selected.emit(component)
+    
+    def navigate_to_package(self, package: Package) -> None:
+        """Navigate to a package"""
+        self.current_package = package
+        self.package_changed.emit(package)
+    
+    def get_current_component(self) -> Optional[Component]:
+        """Get current component"""
+        return self.current_component
+    
+    def get_current_package(self) -> Optional[Package]:
+        """Get current package"""
+        return self.current_package
+
+    def set_tree_widget(self, tree_widget):
+        """Set the tree widget reference"""
+        self.tree_widget = tree_widget
+    
+    def set_graphics_scene(self, graphics_scene):
+        """Set the graphics scene reference"""
+        self.graphics_scene = graphics_scene
+    
+    def set_properties_panel(self, properties_panel):
+        """Set the properties panel reference"""
+        self.properties_panel = properties_panel
+    
+    def can_navigate_back(self):
+        """Check if back navigation is possible"""
+        return False
+    
+    def can_navigate_forward(self):
+        """Check if forward navigation is possible"""
+        return False
+    
+    def navigate_back(self):
+        """Navigate back (stub for Day 3)"""
+        return False
+    
+    def navigate_forward(self):
+        """Navigate forward (stub for Day 3)"""
+        return False
+    
+    def get_breadcrumb_path(self):
+        """Get breadcrumb path (stub for Day 3)"""
+        return []
+    
+    def clear_mappings(self):
+        """Clear navigation mappings (stub for Day 3)"""
+        pass
+    
+    def register_tree_item(self, tree_item, data_object):
+        """Register tree item mapping (stub for Day 3)"""
+        pass

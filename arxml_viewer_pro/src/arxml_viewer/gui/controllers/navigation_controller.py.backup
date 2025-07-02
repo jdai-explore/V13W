@@ -1,0 +1,91 @@
+"""
+Navigation Controller for ARXML Viewer Pro
+Handles navigation state management and tree-diagram synchronization
+"""
+from typing import Optional, List, Dict, Any, Callable
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtWidgets import QWidget
+import logging
+from dataclasses import dataclass
+from enum import Enum
+
+from ...models.component import Component
+from ...models.package import Package
+
+logger = logging.getLogger(__name__)
+
+
+class NavigationMode(Enum):
+    """Navigation modes for different views"""
+    TREE_VIEW = "tree"
+    DIAGRAM_VIEW = "diagram"
+    COMBINED_VIEW = "combined"
+
+
+@dataclass
+class NavigationState:
+    """Represents the current navigation state"""
+    current_package: Optional[Package] = None
+    selected_component: Optional[Component] = None
+    breadcrumb_path: List[str] = None
+    view_mode: NavigationMode = NavigationMode.COMBINED_VIEW
+    zoom_level: float = 1.0
+    scroll_position: tuple = (0, 0)
+    
+    def __post_init__(self):
+        if self.breadcrumb_path is None:
+            self.breadcrumb_path = []
+
+
+class NavigationController(QObject):
+    """
+    Central navigation controller that coordinates between different views
+    """
+    
+    # Signals for navigation events
+    navigation_changed = pyqtSignal(NavigationState)
+    component_selected = pyqtSignal(Component)
+    package_changed = pyqtSignal(Package)
+    
+    def __init__(self, parent: Optional[QObject] = None):
+        super().__init__(parent)
+        
+        # Navigation state
+        self.current_state = NavigationState()
+        
+        # View references
+        self.tree_widget: Optional[QWidget] = None
+        self.graphics_scene: Optional[QWidget] = None
+        self.properties_panel: Optional[QWidget] = None
+        
+        logger.info("Navigation controller initialized")
+    
+    def set_views(self, tree_widget: QWidget = None, graphics_scene: QWidget = None, 
+                  properties_panel: QWidget = None) -> None:
+        """Set view references after initialization"""
+        if tree_widget:
+            self.tree_widget = tree_widget
+        if graphics_scene:
+            self.graphics_scene = graphics_scene
+        if properties_panel:
+            self.properties_panel = properties_panel
+        
+        logger.debug("Navigation controller views configured")
+    
+    def navigate_to_package(self, package: Package) -> None:
+        """Navigate to a specific package"""
+        logger.info(f"Navigating to package: {package.short_name}")
+        self.current_state.current_package = package
+        self.package_changed.emit(package)
+        self.navigation_changed.emit(self.current_state)
+    
+    def select_component(self, component: Component) -> None:
+        """Select a specific component"""
+        logger.info(f"Selecting component: {component.short_name}")
+        self.current_state.selected_component = component
+        self.component_selected.emit(component)
+        self.navigation_changed.emit(self.current_state)
+    
+    def get_current_state(self) -> NavigationState:
+        """Get current navigation state"""
+        return self.current_state

@@ -1,4 +1,20 @@
+#!/usr/bin/env python3
 """
+Create Complete Working NavigationController
+Replace the incomplete version with a fully working one
+"""
+
+from pathlib import Path
+
+def create_complete_navigation_controller():
+    """Create a complete working NavigationController"""
+    
+    nav_path = Path("src/arxml_viewer/gui/controllers/navigation_controller.py")
+    
+    print("🔧 Creating complete NavigationController...")
+    
+    # Complete NavigationController code
+    complete_nav_content = '''"""
 Navigation Controller for ARXML Viewer Pro
 Handles navigation state management and tree-diagram synchronization
 """
@@ -121,3 +137,34 @@ class NavigationController(QObject):
             self.set_graphics_scene(graphics_scene)
         if properties_panel:
             self.set_properties_panel(properties_panel)
+'''
+    
+    # Backup existing file
+    if nav_path.exists():
+        backup_path = nav_path.with_suffix('.py.incomplete')
+        with open(nav_path, 'r', encoding='utf-8') as f:
+            backup_content = f.read()
+        with open(backup_path, 'w', encoding='utf-8') as f:
+            f.write(backup_content)
+        print(f"✅ Backed up incomplete file to: {backup_path}")
+    
+    # Write complete version
+    with open(nav_path, 'w', encoding='utf-8') as f:
+        f.write(complete_nav_content)
+    
+    print("✅ Created complete NavigationController")
+    return True
+
+def main():
+    """Main function"""
+    print("🔧 Create Complete Working NavigationController")
+    print("=" * 60)
+    
+    if create_complete_navigation_controller():
+        print("\n🎉 NavigationController is now complete!")
+        print("Run: python run_app.py")
+    else:
+        print("\n❌ Failed to create NavigationController")
+
+if __name__ == "__main__":
+    main()

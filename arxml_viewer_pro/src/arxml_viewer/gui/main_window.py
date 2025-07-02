@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         self._create_status_bar()
         self._create_central_widget()
         self._setup_shortcuts()
-        self._apply_theme()
+        # self._apply_theme()  # Dark theme disabled
         
         # Day 3 - Setup navigation and layout
         self._setup_navigation_controller()
@@ -546,94 +546,94 @@ class MainWindow(QMainWindow):
         nav_forward_action.triggered.connect(self._navigate_forward)
         self.addAction(nav_forward_action)
     
-    def _apply_theme(self):
-        """Apply dark theme styling"""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #2b2b2b;
-                color: #ffffff;
-            }
-            QMenuBar {
-                background-color: #353535;
-                color: #ffffff;
-                border: none;
-            }
-            QMenuBar::item {
-                background-color: transparent;
-                padding: 4px 8px;
-            }
-            QMenuBar::item:selected {
-                background-color: #4a4a4a;
-            }
-            QToolBar {
-                background-color: #353535;
-                border: none;
-                spacing: 2px;
-            }
-            QStatusBar {
-                background-color: #353535;
-                color: #ffffff;
-                border-top: 1px solid #555;
-            }
-            QTextEdit {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #555;
-            }
-            QLabel {
-                color: #ffffff;
-            }
-            QPushButton {
-                background-color: #4a4a4a;
-                color: #ffffff;
-                border: 1px solid #666;
-                padding: 4px 12px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-            QPushButton:pressed {
-                background-color: #3a3a3a;
-            }
-            QGraphicsView {
-                background-color: #2b2b2b;
-                border: 1px solid #555;
-            }
-            QTabWidget::pane {
-                border: 1px solid #555;
-                background-color: #404040;
-            }
-            QTabWidget::tab-bar {
-                alignment: left;
-            }
-            QTabBar::tab {
-                background-color: #505050;
-                color: white;
-                padding: 8px 12px;
-                margin-right: 2px;
-                border-top-left-radius: 3px;
-                border-top-right-radius: 3px;
-            }
-            QTabBar::tab:selected {
-                background-color: #4a90e2;
-            }
-            QTabBar::tab:hover {
-                background-color: #5a5a5a;
-            }
-            QDockWidget {
-                background-color: #404040;
-                color: white;
-                titlebar-close-icon: none;
-                titlebar-normal-icon: none;
-            }
-            QDockWidget::title {
-                background-color: #353535;
-                color: white;
-                padding: 5px;
-                border: 1px solid #555;
-            }
-        """)
+    # def _apply_theme(self):  # DISABLED: Dark theme method
+        # """Apply dark theme styling"""
+        # self.setStyleSheet("""
+        # QMainWindow {
+        # background-color: #2b2b2b;
+        # color: #ffffff;
+        # }
+        # QMenuBar {
+        # background-color: #353535;
+        # color: #ffffff;
+        # border: none;
+        # }
+        # QMenuBar::item {
+        # background-color: transparent;
+        # padding: 4px 8px;
+        # }
+        # QMenuBar::item:selected {
+        # background-color: #4a4a4a;
+        # }
+        # QToolBar {
+        # background-color: #353535;
+        # border: none;
+        # spacing: 2px;
+        # }
+        # QStatusBar {
+        # background-color: #353535;
+        # color: #ffffff;
+        # border-top: 1px solid #555;
+        # }
+        # QTextEdit {
+        # background-color: #404040;
+        # color: #ffffff;
+        # border: 1px solid #555;
+        # }
+        # QLabel {
+        # color: #ffffff;
+        # }
+        # QPushButton {
+        # background-color: #4a4a4a;
+        # color: #ffffff;
+        # border: 1px solid #666;
+        # padding: 4px 12px;
+        # border-radius: 3px;
+        # }
+        # QPushButton:hover {
+        # background-color: #5a5a5a;
+        # }
+        # QPushButton:pressed {
+        # background-color: #3a3a3a;
+        # }
+        # QGraphicsView {
+        # background-color: #2b2b2b;
+        # border: 1px solid #555;
+        # }
+        # QTabWidget::pane {
+        # border: 1px solid #555;
+        # background-color: #404040;
+        # }
+        # QTabWidget::tab-bar {
+        # alignment: left;
+        # }
+        # QTabBar::tab {
+        # background-color: #505050;
+        # color: white;
+        # padding: 8px 12px;
+        # margin-right: 2px;
+        # border-top-left-radius: 3px;
+        # border-top-right-radius: 3px;
+        # }
+        # QTabBar::tab:selected {
+        # background-color: #4a90e2;
+        # }
+        # QTabBar::tab:hover {
+        # background-color: #5a5a5a;
+        # }
+        # QDockWidget {
+        # background-color: #404040;
+        # color: white;
+        # titlebar-close-icon: none;
+        # titlebar-normal-icon: none;
+        # }
+        # QDockWidget::title {
+        # background-color: #353535;
+        # color: white;
+        # padding: 5px;
+        # border: 1px solid #555;
+        # }
+        # """)
     
     def _show_welcome_message(self):
         """Show welcome message in status bar"""
@@ -1073,7 +1073,8 @@ class MainWindow(QMainWindow):
     def set_theme(self, theme: str):
         """Set application theme"""
         if theme == "dark":
-            self._apply_theme()
+            pass
+            # self._apply_theme()  # Dark theme disabled
     
     def _on_component_selected(self, component):
         """Handle component selection from graphics scene"""

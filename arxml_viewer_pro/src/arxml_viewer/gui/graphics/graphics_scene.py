@@ -331,7 +331,7 @@ class ComponentDiagramScene(QGraphicsScene):
         
         # Set scene properties
         self.setSceneRect(0, 0, 2000, 1500)  # Large scene for components
-        self.setBackgroundBrush(QBrush(QColor(45, 45, 45)))  # Dark background
+        self.setBackgroundBrush(QBrush(QColor(245, 245, 245)))  # Dark background
         
         # Connect selection changes
         self.selectionChanged.connect(self._on_selection_changed)
@@ -669,7 +669,7 @@ class ComponentDiagramScene(QGraphicsScene):
             
             # Create pixmap
             pixmap = QPixmap(width, height)
-            pixmap.fill(QColor(45, 45, 45))  # Dark background
+            pixmap.fill(QColor(245, 245, 245))  # Dark background
             
             # Render scene to pixmap
             painter = QPainter(pixmap)
