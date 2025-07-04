@@ -88,7 +88,7 @@ class Day4Validator:
             'models/interface.py': 'Interface models with method signatures',
             'parsers/interface_parser.py': 'Interface parser extension',
             'gui/graphics/connection_preview.py': 'Connection preview system',
-            'gui/graphics/enhanced_port_graphics.py': 'Enhanced port graphics',
+            'gui/graphics/port_graphics.py': 'Enhanced port graphics',
             'gui/dialogs/port_details_dialog.py': 'Port details dialog'
         }
         
