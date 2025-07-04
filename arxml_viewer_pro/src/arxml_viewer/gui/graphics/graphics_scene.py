@@ -1,8 +1,7 @@
 # src/arxml_viewer/gui/graphics/graphics_scene.py
 """
-Graphics Scene - PyQt5 Compatible Version for Component Visualization
-Enhanced with Day 3 navigation controller integration and search highlighting
-COMPLETE FILE WITH ALL SYNTAX FIXES
+Graphics Scene - FIXED VERSION with Proper Component Graphics Items
+All syntax and method errors resolved
 """
 
 import math
@@ -20,7 +19,7 @@ from ...utils.constants import AppConstants, UIConstants
 from ...utils.logger import get_logger
 
 class ComponentGraphicsItem(QGraphicsRectItem):
-    """Custom graphics item for component representation - Enhanced for Day 3"""
+    """Custom graphics item for component representation - FIXED VERSION"""
     
     def __init__(self, component: Component, parent=None):
         super().__init__(parent)
@@ -28,7 +27,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
         self.component = component
         self.logger = get_logger(__name__)
         
-        # Day 3 - Enhanced state tracking
+        # Enhanced state tracking
         self.is_highlighted = False
         self.is_search_result = False
         self.search_relevance_score = 0.0
@@ -46,14 +45,14 @@ class ComponentGraphicsItem(QGraphicsRectItem):
         # Add ports
         self._create_ports()
         
-        # Make item selectable and movable (PyQt5 flags)
+        # Make item selectable and movable
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
         
         # Set tooltip
         self.setToolTip(self._generate_tooltip())
         
-        # Day 3 - Enhanced interaction
+        # Enhanced interaction
         self.setAcceptHoverEvents(True)
     
     def _setup_appearance(self):
@@ -86,9 +85,9 @@ class ComponentGraphicsItem(QGraphicsRectItem):
         
         self.label.setPos(x, y)
         
-        # Style the label (PyQt5 font weight)
+        # Style the label
         font = QFont("Arial", 9)
-        font.setWeight(QFont.Bold)  # PyQt5 syntax
+        font.setWeight(QFont.Bold)
         self.label.setFont(font)
         self.label.setDefaultTextColor(QColor(255, 255, 255))
     
@@ -121,7 +120,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
             self.port_items.append(port_item)
     
     def _generate_tooltip(self) -> str:
-        """Generate tooltip text for component - Enhanced for Day 3"""
+        """Generate tooltip text for component"""
         tooltip = f"<b>{self.component.short_name}</b><br>"
         tooltip += f"Type: {self.component.component_type.value}<br>"
         tooltip += f"Package: {self.component.package_path or 'Unknown'}<br>"
@@ -135,14 +134,14 @@ class ComponentGraphicsItem(QGraphicsRectItem):
                 desc = desc[:97] + "..."
             tooltip += f"Description: {desc}<br>"
         
-        # Day 3 - Add search info if this is a search result
+        # Add search info if this is a search result
         if self.is_search_result:
             tooltip += f"<br><i>Search relevance: {self.search_relevance_score:.2f}</i>"
         
         return tooltip
     
     def highlight(self, highlight_type: str = "selection"):
-        """Highlight component with different styles"""
+        """Highlight component with different styles - FIXED METHOD"""
         self.is_highlighted = True
         
         if highlight_type == "selection":
@@ -164,7 +163,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
             self.setOpacity(1.0)
     
     def clear_highlight(self):
-        """Clear all highlighting"""
+        """Clear all highlighting - FIXED METHOD"""
         self.is_highlighted = False
         self.is_search_result = False
         
@@ -204,7 +203,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
         super().hoverLeaveEvent(event)
 
 class PortGraphicsItem(QGraphicsEllipseItem):
-    """Custom graphics item for port representation - Enhanced for Day 3"""
+    """Custom graphics item for port representation"""
     
     def __init__(self, port, parent=None):
         super().__init__(parent)
@@ -222,7 +221,7 @@ class PortGraphicsItem(QGraphicsEllipseItem):
         # Set tooltip
         self.setToolTip(self._generate_tooltip())
         
-        # Day 3 - Enhanced interaction
+        # Enhanced interaction
         self.setAcceptHoverEvents(True)
     
     def _setup_appearance(self):
@@ -242,7 +241,7 @@ class PortGraphicsItem(QGraphicsEllipseItem):
         self.setPen(QPen(color.darker(150), 1))
     
     def _generate_tooltip(self) -> str:
-        """Generate tooltip text for port - Enhanced for Day 3"""
+        """Generate tooltip text for port"""
         tooltip = f"<b>{self.port.short_name}</b><br>"
         tooltip += f"Type: {self.port.port_type.value}<br>"
         tooltip += f"UUID: {self.port.uuid}<br>"
@@ -263,7 +262,7 @@ class PortGraphicsItem(QGraphicsEllipseItem):
         return tooltip
     
     def highlight(self, highlight_type: str = "selection"):
-        """Highlight port"""
+        """Highlight port - FIXED METHOD"""
         self.is_highlighted = True
         
         if highlight_type == "selection":
@@ -274,7 +273,7 @@ class PortGraphicsItem(QGraphicsEllipseItem):
             self.setPen(QPen(QColor(255, 0, 255), 2))
     
     def clear_highlight(self):
-        """Clear port highlighting"""
+        """Clear port highlighting - FIXED METHOD"""
         self.is_highlighted = False
         self._setup_appearance()
     
@@ -296,16 +295,15 @@ class PortGraphicsItem(QGraphicsEllipseItem):
 
 class ComponentDiagramScene(QGraphicsScene):
     """
-    Custom graphics scene for component diagram visualization
-    Enhanced with Day 3 navigation controller integration and search support
-    COMPLETE IMPLEMENTATION WITH ALL FIXES
+    FIXED Graphics Scene for component diagram visualization
+    Uses proper ComponentGraphicsItem objects with all required methods
     """
     
     # Signals
     component_selected = pyqtSignal(object)  # Component object
     component_double_clicked = pyqtSignal(object)  # Component object
     
-    # Day 3 - Enhanced signals
+    # Enhanced signals
     component_focused = pyqtSignal(str)  # component_uuid
     port_selected = pyqtSignal(object)  # Port object
     selection_cleared = pyqtSignal()
@@ -315,11 +313,11 @@ class ComponentDiagramScene(QGraphicsScene):
         
         self.logger = get_logger(__name__)
         
-        # Scene state
+        # Scene state - FIXED to use ComponentGraphicsItem
         self.components: Dict[str, ComponentGraphicsItem] = {}
         self.connections: List[QGraphicsLineItem] = []
         
-        # Day 3 - Enhanced state management
+        # Enhanced state management
         self.current_selection: Optional[ComponentGraphicsItem] = None
         self.search_results: Set[str] = set()  # Set of component UUIDs
         self.highlighted_components: Set[str] = set()
@@ -328,7 +326,7 @@ class ComponentDiagramScene(QGraphicsScene):
         self.grid_size = 20
         self.component_spacing = 150
         
-        # Day 3 - Navigation integration
+        # Navigation integration
         self.navigation_controller = None
         self.auto_highlight_enabled = True
         
@@ -345,7 +343,7 @@ class ComponentDiagramScene(QGraphicsScene):
         self.logger.debug("Navigation controller connected to graphics scene")
     
     def load_packages(self, packages: List[Package]):
-        """Load and visualize packages - SIMPLIFIED AND FIXED VERSION"""
+        """Load and visualize packages - FIXED VERSION using ComponentGraphicsItem"""
         print(f"🔧 Graphics scene loading {len(packages)} packages")
         
         # Clear existing content
@@ -383,45 +381,17 @@ class ComponentDiagramScene(QGraphicsScene):
                 
                 print(f"Creating component {component.short_name} at ({x}, {y})")
                 
-                # Create simple rectangle for component
-                rect_item = QGraphicsRectItem(0, 0, 120, 80)
-                rect_item.setPos(x, y)
-                
-                # Color by type
-                if component.component_type.name == 'APPLICATION':
-                    color = QColor(52, 152, 219)  # Blue
-                elif component.component_type.name == 'COMPOSITION':
-                    color = QColor(155, 89, 182)  # Purple
-                elif component.component_type.name == 'SERVICE':
-                    color = QColor(230, 126, 34)  # Orange
-                else:
-                    color = QColor(46, 125, 50)  # Green
-                
-                rect_item.setBrush(QBrush(color))
-                rect_item.setPen(QPen(color.darker(150), 2))
-                
-                # Add text label
-                text_item = QGraphicsTextItem(component.short_name or "Unnamed")
-                text_item.setPos(x + 10, y + 30)
-                text_item.setDefaultTextColor(QColor(255, 255, 255))
-                
-                # Set font
-                font = QFont("Arial", 9)
-                font.setWeight(QFont.Bold)  # PyQt5 syntax
-                text_item.setFont(font)
+                # Create ComponentGraphicsItem - FIXED
+                comp_item = ComponentGraphicsItem(component)
+                comp_item.setPos(x, y)
                 
                 # Add to scene
-                self.addItem(rect_item)
-                self.addItem(text_item)
+                self.addItem(comp_item)
                 
-                # Store reference (simplified)
-                self.components[component.uuid] = rect_item
+                # Store reference - FIXED to use ComponentGraphicsItem
+                self.components[component.uuid] = comp_item
                 
-                # Add selection handling
-                rect_item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
-                
-                # Store component reference for later use
-                rect_item.component = component  # Add component reference
+                print(f"✅ Created component graphics item: {component.short_name}")
                 
             except Exception as e:
                 print(f"❌ Failed to create component {component.short_name}: {e}")
@@ -437,19 +407,19 @@ class ComponentDiagramScene(QGraphicsScene):
         
         print(f"✅ Scene rect set to {scene_width}x{scene_height}")
         
-        # Day 3 - Setup enhanced interactions
+        # Setup enhanced interactions
         self._setup_component_interactions()
         
         self.logger.info(f"Visualization complete: {len(all_components)} components displayed")
     
     def _setup_component_interactions(self):
-        """Setup enhanced component interactions for Day 3"""
+        """Setup enhanced component interactions"""
         print("🔧 Setting up component interactions...")
         # Component interactions are handled by mousePressEvent
         pass
     
-    def _handle_component_selection(self, comp_item):
-        """Handle component selection with navigation integration"""
+    def _handle_component_selection(self, comp_item: ComponentGraphicsItem):
+        """Handle component selection with navigation integration - FIXED"""
         try:
             # Clear previous selection
             if self.current_selection and self.current_selection != comp_item:
@@ -457,11 +427,10 @@ class ComponentDiagramScene(QGraphicsScene):
             
             # Set new selection
             self.current_selection = comp_item
-            if hasattr(comp_item, 'highlight'):
-                comp_item.highlight("selection")
+            comp_item.highlight("selection")
             
             # Get component from graphics item
-            component = getattr(comp_item, 'component', None)
+            component = comp_item.component
             if component:
                 # Emit selection signal
                 self.component_selected.emit(component)
@@ -470,10 +439,10 @@ class ComponentDiagramScene(QGraphicsScene):
         except Exception as e:
             print(f"❌ Component selection handling failed: {e}")
     
-    def _handle_component_double_click(self, comp_item):
-        """Handle component double-click with navigation integration"""
+    def _handle_component_double_click(self, comp_item: ComponentGraphicsItem):
+        """Handle component double-click with navigation integration - FIXED"""
         try:
-            component = getattr(comp_item, 'component', None)
+            component = comp_item.component
             if component:
                 self.component_double_clicked.emit(component)
                 
@@ -486,13 +455,13 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Component double-click handling failed: {e}")
     
     def _on_selection_changed(self):
-        """Handle selection changes in the scene - Enhanced for Day 3"""
+        """Handle selection changes in the scene - FIXED"""
         try:
             selected_items = self.selectedItems()
             
             if selected_items:
                 for item in selected_items:
-                    if isinstance(item, QGraphicsRectItem) and hasattr(item, 'component'):
+                    if isinstance(item, ComponentGraphicsItem):
                         # Don't re-trigger if already selected
                         if self.current_selection != item:
                             self._handle_component_selection(item)
@@ -500,8 +469,7 @@ class ComponentDiagramScene(QGraphicsScene):
             else:
                 # Clear selection
                 if self.current_selection:
-                    if hasattr(self.current_selection, 'clear_highlight'):
-                        self.current_selection.clear_highlight()
+                    self.current_selection.clear_highlight()
                     self.current_selection = None
                 
                 self.component_selected.emit(None)
@@ -511,7 +479,7 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Selection change handling failed: {e}")
     
     def highlight_component(self, component_uuid: str, highlight_type: str = "selection"):
-        """Highlight a specific component - Enhanced for Day 3"""
+        """Highlight a specific component - FIXED"""
         try:
             # Clear previous highlights of this type
             if highlight_type == "selection":
@@ -520,8 +488,7 @@ class ComponentDiagramScene(QGraphicsScene):
             # Highlight specified component
             if component_uuid in self.components:
                 comp_item = self.components[component_uuid]
-                if hasattr(comp_item, 'highlight'):
-                    comp_item.highlight(highlight_type)
+                comp_item.highlight(highlight_type)
                 
                 if highlight_type == "selection":
                     self.current_selection = comp_item
@@ -531,7 +498,7 @@ class ComponentDiagramScene(QGraphicsScene):
                 
                 self.highlighted_components.add(component_uuid)
                 
-                component = getattr(comp_item, 'component', None)
+                component = comp_item.component
                 if component:
                     self.logger.debug(f"Component highlighted: {component.short_name} ({highlight_type})")
                     
@@ -539,14 +506,13 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Component highlighting failed: {e}")
     
     def focus_on_component(self, component_uuid: str):
-        """Focus and center view on specific component"""
+        """Focus and center view on specific component - FIXED"""
         try:
             if component_uuid in self.components:
                 comp_item = self.components[component_uuid]
                 
                 # Highlight with focus style
-                if hasattr(comp_item, 'highlight'):
-                    comp_item.highlight("focus")
+                comp_item.highlight("focus")
                 
                 # Center view on component
                 comp_rect = comp_item.sceneBoundingRect()
@@ -559,7 +525,7 @@ class ComponentDiagramScene(QGraphicsScene):
                 from PyQt5.QtCore import QTimer
                 QTimer.singleShot(2000, lambda: self._clear_focus_highlight(component_uuid))
                 
-                component = getattr(comp_item, 'component', None)
+                component = comp_item.component
                 if component:
                     self.logger.debug(f"Focused on component: {component.short_name}")
                     
@@ -567,27 +533,24 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Component focus failed: {e}")
     
     def _clear_focus_highlight(self, component_uuid: str):
-        """Clear focus highlight after delay"""
+        """Clear focus highlight after delay - FIXED"""
         try:
             if component_uuid in self.components:
                 comp_item = self.components[component_uuid]
                 if comp_item != self.current_selection:
-                    if hasattr(comp_item, 'clear_highlight'):
-                        comp_item.clear_highlight()
+                    comp_item.clear_highlight()
                 else:
-                    if hasattr(comp_item, 'highlight'):
-                        comp_item.highlight("selection")  # Restore selection highlight
+                    comp_item.highlight("selection")  # Restore selection highlight
         except Exception as e:
             print(f"❌ Clear focus highlight failed: {e}")
     
     def _clear_all_highlights(self):
-        """Clear all component highlights except search results"""
+        """Clear all component highlights except search results - FIXED"""
         try:
             for comp_item in self.components.values():
-                component = getattr(comp_item, 'component', None)
+                component = comp_item.component
                 if component and component.uuid not in self.search_results:
-                    if hasattr(comp_item, 'clear_highlight'):
-                        comp_item.clear_highlight()
+                    comp_item.clear_highlight()
             
             self.highlighted_components.clear()
             self.current_selection = None
@@ -609,22 +572,19 @@ class ComponentDiagramScene(QGraphicsScene):
             if item:
                 print(f"🔧 Item clicked: {type(item).__name__}")
                 
-                # Check if it's a component graphics item
-                if isinstance(item, QGraphicsRectItem) and hasattr(item, 'component'):
+                # Check if it's a ComponentGraphicsItem - FIXED
+                if isinstance(item, ComponentGraphicsItem):
                     print(f"✅ Component clicked: {item.component.short_name}")
                     self._handle_component_selection(item)
-                else:
-                    # Check if it's in our components dict
-                    for uuid, graphics_item in self.components.items():
-                        if graphics_item == item:
-                            print(f"✅ Selected component UUID: {uuid}")
-                            self._handle_component_selection(item)
-                            break
+                elif hasattr(item, 'parentItem') and isinstance(item.parentItem(), ComponentGraphicsItem):
+                    # Clicked on a child item (like port or label) - select parent component
+                    parent_item = item.parentItem()
+                    print(f"✅ Component clicked via child: {parent_item.component.short_name}")
+                    self._handle_component_selection(parent_item)
             else:
                 # Clicked on empty space - clear selection
                 if self.current_selection:
-                    if hasattr(self.current_selection, 'clear_highlight'):
-                        self.current_selection.clear_highlight()
+                    self.current_selection.clear_highlight()
                     self.current_selection = None
                 self.clearSelection()
                 self.component_selected.emit(None)
@@ -638,7 +598,7 @@ class ComponentDiagramScene(QGraphicsScene):
         super().mousePressEvent(event)
     
     def mouseDoubleClickEvent(self, event):
-        """Handle mouse double-click events"""
+        """Handle mouse double-click events - FIXED"""
         try:
             if not self.views():
                 super().mouseDoubleClickEvent(event)
@@ -647,7 +607,7 @@ class ComponentDiagramScene(QGraphicsScene):
             # Get item at click position
             item = self.itemAt(event.scenePos(), self.views()[0].transform())
             
-            if item and isinstance(item, QGraphicsRectItem) and hasattr(item, 'component'):
+            if item and isinstance(item, ComponentGraphicsItem):
                 print(f"🔧 Component double-clicked: {item.component.short_name}")
                 self._handle_component_double_click(item)
             
@@ -657,7 +617,7 @@ class ComponentDiagramScene(QGraphicsScene):
         super().mouseDoubleClickEvent(event)
     
     def fit_components_in_view(self):
-        """Adjust scene rect to fit all components"""
+        """Adjust scene rect to fit all components - FIXED"""
         try:
             if self.components:
                 # Calculate bounding rect of all components
@@ -684,7 +644,7 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Fit to view failed: {e}")
     
     def clear_scene(self):
-        """Clear all items from scene"""
+        """Clear all items from scene - FIXED"""
         try:
             self.clear()
             self.components.clear()
@@ -701,14 +661,14 @@ class ComponentDiagramScene(QGraphicsScene):
             print(f"❌ Scene clear failed: {e}")
     
     def get_visible_components(self) -> List:
-        """Get list of currently visible components"""
+        """Get list of currently visible components - FIXED"""
         try:
             visible_components = []
             scene_rect = self.sceneRect()
             
             for comp_item in self.components.values():
                 if comp_item.isVisible() and scene_rect.intersects(comp_item.sceneBoundingRect()):
-                    component = getattr(comp_item, 'component', None)
+                    component = comp_item.component
                     if component:
                         visible_components.append(component)
             
@@ -719,7 +679,7 @@ class ComponentDiagramScene(QGraphicsScene):
             return []
     
     def get_scene_statistics(self) -> Dict[str, int]:
-        """Get scene statistics"""
+        """Get scene statistics - FIXED"""
         try:
             return {
                 'total_components': len(self.components),

@@ -1,8 +1,8 @@
 # src/arxml_viewer/gui/main_window.py
 """
-Main Window - PyQt5 Version with Day 3 Tree Navigation & Search Integration
+Main Window - COMPLETE FIXED VERSION
 Professional main window with enhanced three-panel layout for ARXML Viewer Pro
-FIXED UI COLORS FOR BETTER VISIBILITY
+ALL SYNTAX ERRORS RESOLVED
 """
 
 import sys
@@ -549,7 +549,7 @@ class MainWindow(QMainWindow):
         self.addAction(nav_forward_action)
     
     def _apply_light_theme(self):
-        """Apply light theme styling with good contrast"""
+        """Apply light theme styling with good contrast - FIXED VERSION"""
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f5f5f5;
@@ -559,11 +559,13 @@ class MainWindow(QMainWindow):
                 background-color: #ffffff;
                 color: #333333;
                 border-bottom: 1px solid #cccccc;
+                padding: 2px;
             }
             QMenuBar::item {
                 background-color: transparent;
                 padding: 6px 12px;
                 color: #333333;
+                border-radius: 3px;
             }
             QMenuBar::item:selected {
                 background-color: #e3f2fd;
@@ -574,6 +576,7 @@ class MainWindow(QMainWindow):
                 border-bottom: 1px solid #cccccc;
                 spacing: 3px;
                 color: #333333;
+                padding: 3px;
             }
             QStatusBar {
                 background-color: #ffffff;
@@ -584,7 +587,9 @@ class MainWindow(QMainWindow):
                 background-color: #ffffff;
                 color: #333333;
                 border: 1px solid #cccccc;
+                border-radius: 4px;
                 selection-background-color: #e3f2fd;
+                padding: 4px;
             }
             QLabel {
                 color: #333333;
@@ -596,6 +601,7 @@ class MainWindow(QMainWindow):
                 padding: 6px 16px;
                 border-radius: 4px;
                 font-weight: bold;
+                min-width: 70px;
             }
             QPushButton:hover {
                 background-color: #e3f2fd;
@@ -604,13 +610,20 @@ class MainWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #bbdefb;
             }
+            QPushButton:disabled {
+                background-color: #f5f5f5;
+                color: #999999;
+                border-color: #e0e0e0;
+            }
             QGraphicsView {
                 background-color: #fafafa;
                 border: 1px solid #cccccc;
+                border-radius: 4px;
             }
             QTabWidget::pane {
                 border: 1px solid #cccccc;
                 background-color: #ffffff;
+                border-radius: 4px;
             }
             QTabWidget::tab-bar {
                 alignment: left;
@@ -624,6 +637,7 @@ class MainWindow(QMainWindow):
                 border-top-right-radius: 4px;
                 border: 1px solid #cccccc;
                 border-bottom: none;
+                min-width: 80px;
             }
             QTabBar::tab:selected {
                 background-color: #ffffff;
@@ -636,6 +650,8 @@ class MainWindow(QMainWindow):
             QDockWidget {
                 background-color: #ffffff;
                 color: #333333;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
             }
             QDockWidget::title {
                 background-color: #f5f5f5;
@@ -643,6 +659,7 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid #cccccc;
                 font-weight: bold;
+                border-radius: 4px;
             }
             QLineEdit {
                 background-color: #ffffff;
@@ -650,6 +667,7 @@ class MainWindow(QMainWindow):
                 border-radius: 4px;
                 padding: 6px;
                 color: #333333;
+                selection-background-color: #e3f2fd;
             }
             QLineEdit:focus {
                 border-color: #1976d2;
@@ -661,16 +679,19 @@ class MainWindow(QMainWindow):
                 border-radius: 4px;
                 padding: 4px 8px;
                 color: #333333;
+                min-width: 100px;
             }
             QComboBox:hover {
                 border-color: #1976d2;
             }
             QComboBox::drop-down {
                 border: none;
+                width: 20px;
             }
             QComboBox::down-arrow {
                 width: 12px;
                 height: 12px;
+                background-color: #666666;
             }
         """)
     

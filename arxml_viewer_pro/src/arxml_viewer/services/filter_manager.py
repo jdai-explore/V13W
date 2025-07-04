@@ -1,6 +1,6 @@
 # src/arxml_viewer/services/filter_manager.py
 """
-Filter Manager Service - Component filtering and categorization
+Filter Manager Service - FIXED VERSION with Safe Cleanup
 Manages filtering of components, ports, and packages based on various criteria
 """
 
@@ -99,7 +99,7 @@ class QuickFilter:
     )
 
 class FilterManager:
-    """Main filter manager for ARXML components"""
+    """Main filter manager for ARXML components - FIXED VERSION with Safe Cleanup"""
     
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -125,6 +125,9 @@ class FilterManager:
             Port: self._extract_port_fields,
             Package: self._extract_package_fields
         }
+        
+        # FIXED: Track UI items safely
+        self.tracked_ui_items: Set = set()
     
     def add_filter(self, filter_set: FilterSet):
         """Add a filter set to active filters"""
@@ -138,9 +141,45 @@ class FilterManager:
         self.logger.debug(f"Removed filter: {filter_name}")
     
     def clear_filters(self):
-        """Clear all active filters"""
-        self.active_filters.clear()
-        self.logger.debug("Cleared all filters")
+        """Clear all active filters - FIXED with safe cleanup"""
+        try:
+            # Clear active filters safely
+            self.active_filters.clear()
+            
+            # Clear tracked UI items safely
+            items_to_remove = list(self.tracked_ui_items)
+            for item in items_to_remove:
+                try:
+                    # Check if the Qt object is still valid before accessing
+                    if hasattr(item, 'isValid') and not item.isValid():
+                        continue
+                    if hasattr(item, 'setHidden'):
+                        item.setHidden(False)
+                except RuntimeError:
+                    # Qt object has been deleted - skip it
+                    continue
+                except Exception as e:
+                    # Log other exceptions but continue
+                    print(f"❌ Clear filter failed: {e}")
+                    continue
+            
+            # Clear the tracking set
+            self.tracked_ui_items.clear()
+            
+            self.logger.debug("Cleared all filters safely")
+            
+        except Exception as e:
+            print(f"❌ Filter clearing failed: {e}")
+            self.logger.error(f"Filter clearing failed: {e}")
+    
+    def track_ui_item(self, item):
+        """Track a UI item for safe cleanup - NEW METHOD"""
+        try:
+            if item is not None:
+                self.tracked_ui_items.add(item)
+        except Exception:
+            # Ignore tracking errors
+            pass
     
     def apply_quick_filter(self, filter_key: str):
         """Apply a quick filter preset"""
