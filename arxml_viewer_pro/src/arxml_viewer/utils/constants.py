@@ -1,6 +1,7 @@
 # src/arxml_viewer/utils/constants.py
 """
 Application Constants - Central definition of application constants
+Enhanced with Day 5 constants for connections and layouts
 """
 
 from enum import Enum
@@ -42,6 +43,13 @@ class AppConstants:
         'REQUIRED': (211, 47, 47),    # Red
         'PROVIDED_REQUIRED': (255, 193, 7)  # Amber
     }
+    
+    # Day 5 - Connection colors
+    CONNECTION_COLORS = {
+        'ASSEMBLY': (46, 125, 50),      # Green
+        'DELEGATION': (255, 152, 0),    # Orange
+        'PASS_THROUGH': (96, 125, 139)  # Gray
+    }
 
 class UIConstants:
     """UI-specific constants"""
@@ -57,6 +65,11 @@ class UIConstants:
     COMPONENT_PORT_SIZE = 8
     CONNECTION_LINE_WIDTH = 2
     
+    # Day 5 - Enhanced graphics constants
+    CONNECTION_ARROW_SIZE = 12
+    CONNECTION_LABEL_FONT_SIZE = 8
+    BREADCRUMB_HEIGHT = 40
+    
     # Zoom limits
     MIN_ZOOM = 0.1
     MAX_ZOOM = 5.0
@@ -65,6 +78,7 @@ class UIConstants:
     # Animation timing (milliseconds)
     SELECTION_ANIMATION_DURATION = 200
     HOVER_ANIMATION_DURATION = 150
+    CONNECTION_ANIMATION_DURATION = 100
 
 class FileConstants:
     """File handling constants"""
@@ -82,3 +96,21 @@ class FileConstants:
     
     # File filters for dialogs
     ARXML_FILTER = "ARXML Files (*.arxml *.xml);;All Files (*.*)"
+
+class LayoutConstants:
+    """Day 5 - Layout algorithm constants"""
+    
+    # Layout types
+    LAYOUT_TYPES = ['grid', 'hierarchical', 'force_directed', 'circular']
+    
+    # Default layout parameters
+    DEFAULT_SPACING_X = 180
+    DEFAULT_SPACING_Y = 150
+    DEFAULT_LAYER_SPACING = 200
+    MIN_COMPONENT_SPACING = 100
+    
+    # Force-directed parameters
+    REPULSION_FORCE = 1000
+    ATTRACTION_FORCE = 0.5
+    FORCE_ITERATIONS = 50
+    DAMPING_FACTOR = 0.9

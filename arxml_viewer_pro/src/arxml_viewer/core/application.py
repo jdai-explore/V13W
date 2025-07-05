@@ -1,7 +1,7 @@
-# src/arxml_viewer/core/application.py
+# src/arxml_viewer/core/application.py (ENHANCED VERSION)
 """
 Core Application Controller - Main application logic and coordination
-Enhanced with Day 3 search engine, filter manager, and navigation integration
+Enhanced with Day 5 connection and export integration
 """
 
 import sys
@@ -13,11 +13,12 @@ from PyQt5.QtGui import QCloseEvent
 
 from ..parsers.arxml_parser import ARXMLParser, ARXMLParsingError
 from ..models.package import Package
+from ..models.connection import Connection
 from ..config import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.constants import AppConstants
 
-# Day 3 - Import new services
+# Day 3 - Import services
 from ..services.search_engine import SearchEngine, SearchScope, SearchMode
 from ..services.filter_manager import FilterManager
 
@@ -46,9 +47,8 @@ class ParseWorker(QObject):
 
 class ARXMLViewerApplication(QObject):
     """
-    Main application controller
+    Main application controller - Enhanced for Day 5
     Coordinates between GUI, parsing, and business logic
-    Enhanced with Day 3 search, filtering, and navigation capabilities
     """
     
     # Signals
@@ -59,9 +59,13 @@ class ARXMLViewerApplication(QObject):
     parsing_failed = pyqtSignal(str)
     
     # Day 3 - Enhanced signals
-    search_index_built = pyqtSignal(dict)  # search statistics
-    filter_applied = pyqtSignal(str, int)  # filter_name, result_count
-    navigation_state_changed = pyqtSignal(dict)  # navigation state
+    search_index_built = pyqtSignal(dict)
+    filter_applied = pyqtSignal(str, int)
+    navigation_state_changed = pyqtSignal(dict)
+    
+    # Day 5 - Connection signals
+    connections_loaded = pyqtSignal(list)  # List[Connection]
+    export_completed = pyqtSignal(str, bool)  # filename, success
     
     def __init__(self, config_manager: ConfigManager, show_splash: bool = True):
         super().__init__()
@@ -74,16 +78,19 @@ class ARXMLViewerApplication(QObject):
         self.current_packages: List[Package] = []
         self.current_metadata: Dict[str, Any] = {}
         
+        # Day 5 - Connection state
+        self.current_connections: List[Connection] = []
+        
         # Parsing
         self.parser = ARXMLParser()
         self.parse_thread: Optional[QThread] = None
         self.parse_worker: Optional[ParseWorker] = None
         
-        # Day 3 - Core services initialization
+        # Day 3 - Core services
         self.search_engine = SearchEngine()
         self.filter_manager = FilterManager()
         
-        # Day 3 - Service state
+        # Service state
         self.search_index_ready = False
         self.active_filters: List[str] = []
         self.last_search_results = []
@@ -93,8 +100,6 @@ class ARXMLViewerApplication(QObject):
         
         # Setup connections
         self._setup_connections()
-        
-        # Day 3 - Setup service connections
         self._setup_service_connections()
         
         if show_splash:
@@ -111,10 +116,14 @@ class ARXMLViewerApplication(QObject):
             main_window.close_file_requested.connect(self.close_file)
             main_window.exit_requested.connect(self.quit)
             
-            # Day 3 - Connect services to main window
+            # Day 5 - Connect export signals
+            if hasattr(main_window, 'export_requested'):
+                main_window.export_requested.connect(self._on_export_requested)
+            
+            # Connect services to main window
             self._connect_services_to_main_window(main_window)
             
-            self.logger.info("Main window created successfully")
+            self.logger.info("Main window created successfully with Day 5 enhancements")
             return main_window
             
         except ImportError as e:
@@ -126,6 +135,122 @@ class ARXMLViewerApplication(QObject):
             print(f"❌ Failed to create main window: {e}")
             return None
     
+    def open_file(self, file_path: str) -> bool:
+        """Open and parse ARXML file - Enhanced for Day 5 connections"""
+        from pathlib import Path
+        
+        file_path = str(Path(file_path).resolve())
+        print(f"🔧 Opening file: {file_path}")
+        
+        # Simple validation
+        if not Path(file_path).exists():
+            print(f"❌ File not found: {file_path}")
+            return False
+        
+        # Close current file if open
+        if self.current_file:
+            self.close_file()
+        
+        try:
+            print("🔧 Starting parser...")
+            packages, metadata = self.parser.parse_file(file_path)
+            print(f"✅ Parsed {len(packages)} packages")
+            
+            # Store results
+            self.current_file = file_path
+            self.current_packages = packages
+            self.current_metadata = metadata
+            
+            # Day 5 - Get parsed connections
+            self.current_connections = self.parser.get_parsed_connections()
+            print(f"🔗 Retrieved {len(self.current_connections)} connections")
+            
+            # Build search index
+            try:
+                self.search_engine.build_index(packages)
+                self.search_index_ready = True
+                print("✅ Search index built")
+            except Exception as e:
+                print(f"⚠️ Search index build failed: {e}")
+                self.search_index_ready = False
+            
+            # Notify UI
+            self.file_opened.emit(file_path)
+            self.parsing_finished.emit(packages, metadata)
+            
+            # Day 5 - Emit connections signal
+            if self.current_connections:
+                self.connections_loaded.emit(self.current_connections)
+            
+            print("✅ File opened successfully with connections")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Parsing failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.parsing_failed.emit(str(e))
+            return False
+    
+    def get_parsed_connections(self) -> List[Connection]:
+        """Day 5 - Get parsed connections for graphics scene"""
+        return self.current_connections.copy()
+    
+    def get_connections_for_component(self, component_uuid: str) -> List[Connection]:
+        """Day 5 - Get connections for specific component"""
+        return [conn for conn in self.current_connections 
+                if conn.involves_component(component_uuid)]
+    
+    def export_diagram(self, filename: str, format_type: str) -> bool:
+        """Day 5 - Export diagram to file"""
+        try:
+            success = False
+            
+            if self.main_window and hasattr(self.main_window, 'export_diagram'):
+                success = self.main_window.export_diagram(filename, format_type)
+            
+            self.export_completed.emit(filename, success)
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Export failed: {e}")
+            self.export_completed.emit(filename, False)
+            return False
+    
+    def _on_export_requested(self, filename: str, format_type: str):
+        """Day 5 - Handle export request from main window"""
+        self.export_diagram(filename, format_type)
+    
+    def close_file(self):
+        """Close current file - Enhanced for Day 5"""
+        if self.current_file:
+            self.logger.info(f"Closing file: {self.current_file}")
+            
+            # Clear search and filter state
+            self._clear_search_state()
+            self._clear_filter_state()
+            
+            self.current_file = None
+            self.current_packages = []
+            self.current_metadata = {}
+            self.current_connections = []  # Day 5 - Clear connections
+            self.search_index_ready = False
+            
+            self.file_closed.emit()
+    
+    def get_application_info(self) -> Dict[str, Any]:
+        """Day 5 - Get comprehensive application information"""
+        return {
+            'version': AppConstants.APP_VERSION,
+            'file_open': self.is_file_open,
+            'current_file': self.current_file,
+            'packages_loaded': len(self.current_packages),
+            'connections_loaded': len(self.current_connections),
+            'search_ready': self.search_index_ready,
+            'active_filters': len(self.active_filters)
+        }
+    
+    # Existing methods remain the same...
     def _connect_services_to_main_window(self, main_window):
         """Connect Day 3 services to main window"""
         try:
@@ -182,85 +307,6 @@ class ARXMLViewerApplication(QObject):
         else:
             print("❌ Cannot show main window - GUI not created")
     
-    def _on_open_file_requested(self):
-        """Handle open file request from main window"""
-        # Get file path from main window's file dialog
-        # This is handled by the main window's open_file_dialog method
-        pass
-    
-    def open_file(self, file_path: str) -> bool:
-        """
-        Open and parse ARXML file - SIMPLIFIED VERSION
-        
-        Args:
-            file_path: Path to ARXML file
-            
-        Returns:
-            True if file opening started successfully
-        """
-        from pathlib import Path
-        
-        file_path = str(Path(file_path).resolve())
-        print(f"🔧 Opening file: {file_path}")
-        
-        # Simple validation
-        if not Path(file_path).exists():
-            print(f"❌ File not found: {file_path}")
-            return False
-        
-        # Close current file if open
-        if self.current_file:
-            self.close_file()
-        
-        try:
-            print("🔧 Starting parser...")
-            packages, metadata = self.parser.parse_file(file_path)
-            print(f"✅ Parsed {len(packages)} packages")
-            
-            # Store results
-            self.current_file = file_path
-            self.current_packages = packages
-            self.current_metadata = metadata
-            
-            # Build search index
-            try:
-                self.search_engine.build_index(packages)
-                self.search_index_ready = True
-                print("✅ Search index built")
-            except Exception as e:
-                print(f"⚠️ Search index build failed: {e}")
-                self.search_index_ready = False
-            
-            # Notify UI
-            self.file_opened.emit(file_path)
-            self.parsing_finished.emit(packages, metadata)
-            
-            print("✅ File opened successfully")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Parsing failed: {e}")
-            import traceback
-            traceback.print_exc()
-            self.parsing_failed.emit(str(e))
-            return False
-    
-    def close_file(self):
-        """Close current file - Enhanced for Day 3"""
-        if self.current_file:
-            self.logger.info(f"Closing file: {self.current_file}")
-            
-            # Day 3 - Clear search and filter state
-            self._clear_search_state()
-            self._clear_filter_state()
-            
-            self.current_file = None
-            self.current_packages = []
-            self.current_metadata = {}
-            self.search_index_ready = False
-            
-            self.file_closed.emit()
-    
     def quit(self):
         """Quit application"""
         self.logger.info("Application quit requested")
@@ -268,7 +314,7 @@ class ARXMLViewerApplication(QObject):
         # Save configuration
         self._save_configuration()
         
-        # Day 3 - Save service states
+        # Save service states
         self._save_service_states()
         
         # Close any open files
@@ -298,7 +344,7 @@ class ARXMLViewerApplication(QObject):
             # Save search history
             if self.search_engine:
                 search_history = self.search_engine.search_history
-                self.config_manager.update_config(search_history=search_history[:10])  # Save last 10
+                self.config_manager.update_config(search_history=search_history[:10])
             
             # Save active filters
             if self.active_filters:
@@ -331,8 +377,7 @@ class ARXMLViewerApplication(QObject):
         if self.filter_manager:
             self.filter_manager.clear_filters()
     
-    # ===== Service Event Handlers =====
-    
+    # Service Event Handlers
     def _on_search_index_built(self, search_stats: Dict[str, Any]):
         """Handle search index built"""
         self.logger.info(f"Search index built: {search_stats}")
@@ -353,6 +398,12 @@ class ARXMLViewerApplication(QObject):
     def _on_navigation_state_changed(self, nav_state: Dict[str, Any]):
         """Handle navigation state change"""
         self.logger.debug(f"Navigation state changed: {nav_state}")
+    
+    def _on_open_file_requested(self):
+        """Handle open file request from main window"""
+        # Get file path from main window's file dialog
+        # This is handled by the main window's open_file_dialog method
+        pass
     
     @property
     def is_file_open(self) -> bool:
