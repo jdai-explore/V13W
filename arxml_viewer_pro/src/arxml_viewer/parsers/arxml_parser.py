@@ -1,8 +1,8 @@
-# src/arxml_viewer/parsers/arxml_parser.py (COMPLETE FIXED VERSION)
+# src/arxml_viewer/parsers/arxml_parser.py (ENHANCED VERSION WITH CONNECTION PARSING)
 """
-ARXML Parser - Enhanced for Day 4 Interface Parsing
-Integration with interface parser and enhanced port information
-FIXED: Complete implementation with proper try/except blocks
+ARXML Parser - Enhanced with Day 5 Connection Parsing
+Integration with interface parser and connection parsing capabilities
+PRIORITY 1: CONNECTION VISUALIZATION - Complete Implementation
 """
 
 import os
@@ -62,10 +62,15 @@ class SimpleXMLHelper:
         if element is not None and element.text:
             return element.text.strip()
         return default
+    
+    def get_attribute(self, element: etree.Element, attr_name: str, default: str = "") -> str:
+        """Get attribute value from element"""
+        return element.get(attr_name, default)
 
 class ARXMLParser:
     """
-    Enhanced ARXML parser with Day 4 interface parsing capabilities
+    Enhanced ARXML parser with Day 5 connection parsing capabilities
+    PRIORITY 1: CONNECTION VISUALIZATION - Complete Implementation
     """
     
     def __init__(self):
@@ -77,9 +82,9 @@ class ARXMLParser:
             'parse_time': 0,
             'components_parsed': 0,
             'ports_parsed': 0,
-            'connections_parsed': 0,
+            'connections_parsed': 0,  # Enhanced for connections
             'packages_parsed': 0,
-            'interfaces_parsed': 0  # New for Day 4
+            'interfaces_parsed': 0
         }
         
         # XML parsing configuration
@@ -92,10 +97,16 @@ class ARXMLParser:
         # Day 4 - Interface parser (will be initialized later)
         self.interface_parser = None
         self.parsed_interfaces: Dict[str, Interface] = {}
+        
+        # Day 5 - Connection parsing state
+        self.parsed_connections: List[Connection] = []
+        self.component_uuid_map: Dict[str, str] = {}  # component_path -> uuid
+        self.port_uuid_map: Dict[str, str] = {}       # port_path -> uuid
     
     def parse_file(self, file_path: str) -> Tuple[List[Package], Dict[str, Any]]:
         """
-        Parse ARXML file and return packages with components - Enhanced for Day 4
+        Parse ARXML file and return packages with components and connections
+        Enhanced for Day 5 with connection parsing
         
         Args:
             file_path: Path to ARXML file
@@ -113,7 +124,7 @@ class ARXMLParser:
             raise ARXMLParsingError(f"File not found: {file_path}")
         
         self.parse_stats['file_size'] = file_path.stat().st_size
-        self.logger.info(f"Starting enhanced ARXML parsing: {file_path} ({self.parse_stats['file_size']/1024/1024:.1f} MB)")
+        self.logger.info(f"Starting enhanced ARXML parsing with connections: {file_path} ({self.parse_stats['file_size']/1024/1024:.1f} MB)")
         
         try:
             # Parse XML with lxml
@@ -136,8 +147,13 @@ class ARXMLParser:
                 print("⚠️ Interface parser not available - continuing without interface parsing")
                 self.interface_parser = None
             
-            # Parse main content with enhanced interface support
-            packages = self._parse_packages_enhanced(root, xml_helper)
+            # Clear connection parsing state
+            self.parsed_connections.clear()
+            self.component_uuid_map.clear()
+            self.port_uuid_map.clear()
+            
+            # Parse main content with enhanced connection support
+            packages = self._parse_packages_with_connections(root, xml_helper)
             
             # Calculate statistics
             self.parse_stats['parse_time'] = time.time() - start_time
@@ -146,9 +162,10 @@ class ARXMLParser:
             self.logger.info(f"Enhanced ARXML parsing completed in {self.parse_stats['parse_time']:.2f}s")
             self.logger.info(f"Parsed: {self.parse_stats['components_parsed']} components, "
                            f"{self.parse_stats['ports_parsed']} ports, "
+                           f"{self.parse_stats['connections_parsed']} connections, "
                            f"{self.parse_stats['interfaces_parsed']} interfaces")
             
-            # Build metadata with interface information
+            # Build metadata with connection information
             metadata = {
                 'file_path': str(file_path),
                 'file_size': self.parse_stats['file_size'],
@@ -156,7 +173,8 @@ class ARXMLParser:
                 'statistics': self.parse_stats.copy(),
                 'namespaces': xml_helper.namespaces,
                 'autosar_version': self._detect_autosar_version(root),
-                'interfaces': self._get_interface_metadata()
+                'interfaces': self._get_interface_metadata(),
+                'connections': self._get_connection_metadata()  # New for Day 5
             }
             
             return packages, metadata
@@ -166,11 +184,11 @@ class ARXMLParser:
         except Exception as e:
             raise ARXMLParsingError(f"Parsing failed: {e}")
     
-    def _parse_packages_enhanced(self, root: etree.Element, xml_helper: SimpleXMLHelper) -> List[Package]:
-        """Parse AR-PACKAGES from XML root - Enhanced with interface parsing"""
+    def _parse_packages_with_connections(self, root: etree.Element, xml_helper: SimpleXMLHelper) -> List[Package]:
+        """Parse AR-PACKAGES from XML root - Enhanced with connection parsing"""
         packages = []
         
-        print("🔧 Enhanced package parsing with interface support...")
+        print("🔧 Enhanced package parsing with connection support...")
         
         try:
             # Find AR-PACKAGES container first
@@ -214,11 +232,27 @@ class ARXMLParser:
                     print(f"❌ Failed to parse package: {e}")
                     continue
             
+            # Day 5 - Parse connections after all components are loaded
+            print("🔗 Starting connection parsing...")
+            try:
+                self._parse_connections_from_root(root, xml_helper)
+                print(f"✅ Parsed {len(self.parsed_connections)} connections")
+                self.parse_stats['connections_parsed'] = len(self.parsed_connections)
+            except Exception as e:
+                print(f"⚠️ Connection parsing failed: {e}")
+                self.parsed_connections = []
+            
             # Day 4 - Link interfaces to ports
             try:
                 self._link_interfaces_to_ports(packages)
             except Exception as e:
                 print(f"⚠️ Interface linking failed: {e}")
+            
+            # Day 5 - Add connections to packages/components
+            try:
+                self._add_connections_to_packages(packages)
+            except Exception as e:
+                print(f"⚠️ Connection integration failed: {e}")
             
             self.parse_stats['packages_parsed'] = len(packages)
             return packages
@@ -227,6 +261,391 @@ class ARXMLParser:
             print(f"❌ Package parsing failed: {e}")
             raise ARXMLParsingError(f"Failed to parse packages: {e}")
     
+    def _parse_connections_from_root(self, root: etree.Element, xml_helper: SimpleXMLHelper):
+        """Parse connections from the entire XML document - NEW for Day 5"""
+        try:
+            print("🔗 Searching for connectors in XML...")
+            
+            # Find all CONNECTORS elements throughout the document
+            connectors_elements = xml_helper.find_elements(root, "CONNECTORS")
+            print(f"🔗 Found {len(connectors_elements)} CONNECTORS elements")
+            
+            for connectors_elem in connectors_elements:
+                # Parse both assembly and delegation connectors
+                self._parse_connectors_element(connectors_elem, xml_helper)
+            
+            print(f"🔗 Connection parsing completed: {len(self.parsed_connections)} connections")
+            
+        except Exception as e:
+            print(f"❌ Connection parsing failed: {e}")
+            raise
+    
+    def _parse_connectors_element(self, connectors_elem: etree.Element, xml_helper: SimpleXMLHelper):
+        """Parse individual CONNECTORS element - NEW for Day 5"""
+        try:
+            # Parse ASSEMBLY-SW-CONNECTOR elements
+            assembly_connectors = xml_helper.find_elements(connectors_elem, "ASSEMBLY-SW-CONNECTOR")
+            print(f"🔗 Found {len(assembly_connectors)} assembly connectors")
+            
+            for conn_elem in assembly_connectors:
+                connection = self._parse_assembly_connector(conn_elem, xml_helper)
+                if connection:
+                    self.parsed_connections.append(connection)
+            
+            # Parse DELEGATION-SW-CONNECTOR elements
+            delegation_connectors = xml_helper.find_elements(connectors_elem, "DELEGATION-SW-CONNECTOR")
+            print(f"🔗 Found {len(delegation_connectors)} delegation connectors")
+            
+            for conn_elem in delegation_connectors:
+                connection = self._parse_delegation_connector(conn_elem, xml_helper)
+                if connection:
+                    self.parsed_connections.append(connection)
+            
+        except Exception as e:
+            print(f"❌ Connectors element parsing failed: {e}")
+    
+    def _parse_assembly_connector(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[Connection]:
+        """Parse ASSEMBLY-SW-CONNECTOR element - NEW for Day 5"""
+        try:
+            short_name = xml_helper.get_text(conn_elem, "SHORT-NAME")
+            if not short_name:
+                print("⚠️ Assembly connector without SHORT-NAME")
+                return None
+            
+            print(f"🔗 Parsing assembly connector: {short_name}")
+            
+            # Get description
+            desc = self._get_description(conn_elem, xml_helper)
+            
+            # Parse provider endpoint
+            provider_endpoint = self._parse_provider_endpoint(conn_elem, xml_helper)
+            if not provider_endpoint:
+                print(f"⚠️ Assembly connector {short_name} missing provider endpoint")
+                return None
+            
+            # Parse requester endpoint
+            requester_endpoint = self._parse_requester_endpoint(conn_elem, xml_helper)
+            if not requester_endpoint:
+                print(f"⚠️ Assembly connector {short_name} missing requester endpoint")
+                return None
+            
+            # Create connection
+            connection = Connection(
+                short_name=short_name,
+                desc=desc,
+                connection_type=ConnectionType.ASSEMBLY,
+                provider_endpoint=provider_endpoint,
+                requester_endpoint=requester_endpoint
+            )
+            
+            print(f"✅ Created assembly connection: {short_name}")
+            return connection
+            
+        except Exception as e:
+            print(f"❌ Assembly connector parsing failed: {e}")
+            return None
+    
+    def _parse_delegation_connector(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[Connection]:
+        """Parse DELEGATION-SW-CONNECTOR element - NEW for Day 5"""
+        try:
+            short_name = xml_helper.get_text(conn_elem, "SHORT-NAME")
+            if not short_name:
+                print("⚠️ Delegation connector without SHORT-NAME")
+                return None
+            
+            print(f"🔗 Parsing delegation connector: {short_name}")
+            
+            # Get description
+            desc = self._get_description(conn_elem, xml_helper)
+            
+            # Parse inner port (acts as provider for delegation)
+            inner_endpoint = self._parse_inner_port_endpoint(conn_elem, xml_helper)
+            if not inner_endpoint:
+                print(f"⚠️ Delegation connector {short_name} missing inner port")
+                return None
+            
+            # Parse outer port (acts as requester for delegation)
+            outer_endpoint = self._parse_outer_port_endpoint(conn_elem, xml_helper)
+            if not outer_endpoint:
+                print(f"⚠️ Delegation connector {short_name} missing outer port")
+                return None
+            
+            # Create connection (inner = provider, outer = requester for delegation)
+            connection = Connection(
+                short_name=short_name,
+                desc=desc,
+                connection_type=ConnectionType.DELEGATION,
+                provider_endpoint=inner_endpoint,
+                requester_endpoint=outer_endpoint
+            )
+            
+            print(f"✅ Created delegation connection: {short_name}")
+            return connection
+            
+        except Exception as e:
+            print(f"❌ Delegation connector parsing failed: {e}")
+            return None
+    
+    def _parse_provider_endpoint(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[ConnectionEndpoint]:
+        """Parse provider endpoint from assembly connector - NEW for Day 5"""
+        try:
+            # Look for PROVIDER-IREF
+            provider_iref = xml_helper.find_element(conn_elem, "PROVIDER-IREF")
+            if not provider_iref:
+                return None
+            
+            # Get context component reference
+            context_component_ref = xml_helper.get_text(provider_iref, "CONTEXT-COMPONENT-REF")
+            # Get target port reference  
+            target_port_ref = xml_helper.get_text(provider_iref, "TARGET-P-PORT-REF")
+            
+            if not context_component_ref or not target_port_ref:
+                print("⚠️ Provider endpoint missing component or port reference")
+                return None
+            
+            # Resolve to UUIDs
+            component_uuid = self._resolve_component_reference(context_component_ref)
+            port_uuid = self._resolve_port_reference(target_port_ref, component_uuid)
+            
+            if not component_uuid or not port_uuid:
+                print(f"⚠️ Could not resolve provider endpoint: comp={component_uuid}, port={port_uuid}")
+                return None
+            
+            return ConnectionEndpoint(
+                component_uuid=component_uuid,
+                port_uuid=port_uuid
+            )
+            
+        except Exception as e:
+            print(f"❌ Provider endpoint parsing failed: {e}")
+            return None
+    
+    def _parse_requester_endpoint(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[ConnectionEndpoint]:
+        """Parse requester endpoint from assembly connector - NEW for Day 5"""
+        try:
+            # Look for REQUESTER-IREF
+            requester_iref = xml_helper.find_element(conn_elem, "REQUESTER-IREF")
+            if not requester_iref:
+                return None
+            
+            # Get context component reference
+            context_component_ref = xml_helper.get_text(requester_iref, "CONTEXT-COMPONENT-REF")
+            # Get target port reference
+            target_port_ref = xml_helper.get_text(requester_iref, "TARGET-R-PORT-REF")
+            
+            if not context_component_ref or not target_port_ref:
+                print("⚠️ Requester endpoint missing component or port reference")
+                return None
+            
+            # Resolve to UUIDs
+            component_uuid = self._resolve_component_reference(context_component_ref)
+            port_uuid = self._resolve_port_reference(target_port_ref, component_uuid)
+            
+            if not component_uuid or not port_uuid:
+                print(f"⚠️ Could not resolve requester endpoint: comp={component_uuid}, port={port_uuid}")
+                return None
+            
+            return ConnectionEndpoint(
+                component_uuid=component_uuid,
+                port_uuid=port_uuid
+            )
+            
+        except Exception as e:
+            print(f"❌ Requester endpoint parsing failed: {e}")
+            return None
+    
+    def _parse_inner_port_endpoint(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[ConnectionEndpoint]:
+        """Parse inner port endpoint from delegation connector - NEW for Day 5"""
+        try:
+            # Look for INNER-PORT-IREF
+            inner_iref = xml_helper.find_element(conn_elem, "INNER-PORT-IREF")
+            if not inner_iref:
+                return None
+            
+            # Get context component reference
+            context_component_ref = xml_helper.get_text(inner_iref, "CONTEXT-COMPONENT-REF")
+            # Get target port reference (could be P-PORT or R-PORT)
+            target_port_ref = (xml_helper.get_text(inner_iref, "TARGET-P-PORT-REF") or 
+                             xml_helper.get_text(inner_iref, "TARGET-R-PORT-REF"))
+            
+            if not context_component_ref or not target_port_ref:
+                print("⚠️ Inner port endpoint missing component or port reference")
+                return None
+            
+            # Resolve to UUIDs
+            component_uuid = self._resolve_component_reference(context_component_ref)
+            port_uuid = self._resolve_port_reference(target_port_ref, component_uuid)
+            
+            if not component_uuid or not port_uuid:
+                print(f"⚠️ Could not resolve inner port endpoint: comp={component_uuid}, port={port_uuid}")
+                return None
+            
+            return ConnectionEndpoint(
+                component_uuid=component_uuid,
+                port_uuid=port_uuid
+            )
+            
+        except Exception as e:
+            print(f"❌ Inner port endpoint parsing failed: {e}")
+            return None
+    
+    def _parse_outer_port_endpoint(self, conn_elem: etree.Element, xml_helper: SimpleXMLHelper) -> Optional[ConnectionEndpoint]:
+        """Parse outer port endpoint from delegation connector - NEW for Day 5"""
+        try:
+            # Look for OUTER-PORT-REF (direct reference)
+            outer_port_ref = xml_helper.get_text(conn_elem, "OUTER-PORT-REF")
+            
+            if not outer_port_ref:
+                print("⚠️ Outer port endpoint missing port reference")
+                return None
+            
+            # For outer ports, we need to find the composition component
+            # This is a simplified approach - in real AUTOSAR, this would be more complex
+            composition_uuid = self._find_composition_for_outer_port(outer_port_ref)
+            port_uuid = self._resolve_port_reference(outer_port_ref, composition_uuid)
+            
+            if not composition_uuid or not port_uuid:
+                print(f"⚠️ Could not resolve outer port endpoint: comp={composition_uuid}, port={port_uuid}")
+                return None
+            
+            return ConnectionEndpoint(
+                component_uuid=composition_uuid,
+                port_uuid=port_uuid
+            )
+            
+        except Exception as e:
+            print(f"❌ Outer port endpoint parsing failed: {e}")
+            return None
+    
+    def _resolve_component_reference(self, component_ref: str) -> Optional[str]:
+        """Resolve component reference to UUID - NEW for Day 5"""
+        try:
+            # Simple implementation - could be enhanced with proper path resolution
+            if component_ref in self.component_uuid_map:
+                return self.component_uuid_map[component_ref]
+            
+            # Try to match by component name (fallback)
+            component_name = component_ref.split('/')[-1] if '/' in component_ref else component_ref
+            for ref_path, uuid in self.component_uuid_map.items():
+                if ref_path.endswith(component_name):
+                    return uuid
+            
+            print(f"⚠️ Could not resolve component reference: {component_ref}")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Component reference resolution failed: {e}")
+            return None
+    
+    def _resolve_port_reference(self, port_ref: str, component_uuid: str) -> Optional[str]:
+        """Resolve port reference to UUID - NEW for Day 5"""
+        try:
+            # Create full port path
+            full_port_path = f"{component_uuid}#{port_ref}"
+            
+            if full_port_path in self.port_uuid_map:
+                return self.port_uuid_map[full_port_path]
+            
+            # Try to match by port name (fallback)
+            port_name = port_ref.split('/')[-1] if '/' in port_ref else port_ref
+            for ref_path, uuid in self.port_uuid_map.items():
+                if ref_path.endswith(port_name) and component_uuid in ref_path:
+                    return uuid
+            
+            print(f"⚠️ Could not resolve port reference: {port_ref} for component {component_uuid}")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Port reference resolution failed: {e}")
+            return None
+    
+    def _find_composition_for_outer_port(self, outer_port_ref: str) -> Optional[str]:
+        """Find composition component that owns the outer port - NEW for Day 5"""
+        try:
+            # This is a simplified implementation
+            # In a real system, you'd need to traverse the component hierarchy
+            
+            # For now, return the first composition component found
+            for ref_path, uuid in self.component_uuid_map.items():
+                if "composition" in ref_path.lower():
+                    return uuid
+            
+            print(f"⚠️ Could not find composition for outer port: {outer_port_ref}")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Composition lookup failed: {e}")
+            return None
+    
+    def _add_connections_to_packages(self, packages: List[Package]):
+        """Add parsed connections to packages/components - NEW for Day 5"""
+        try:
+            print(f"🔗 Integrating {len(self.parsed_connections)} connections into packages...")
+            
+            # For now, we'll store connections at the package level
+            # In a more sophisticated implementation, you might want to store them
+            # with the specific composition components that contain them
+            
+            if packages and self.parsed_connections:
+                # Add all connections to the first package for simplicity
+                # In reality, you'd want to determine which package owns each connection
+                main_package = packages[0]
+                
+                # Add connection UUIDs to package
+                connection_uuids = [conn.uuid for conn in self.parsed_connections]
+                main_package.connections = getattr(main_package, 'connections', [])
+                main_package.connections.extend(connection_uuids)
+                
+                print(f"✅ Added {len(connection_uuids)} connections to package {main_package.short_name}")
+            
+        except Exception as e:
+            print(f"⚠️ Connection integration failed: {e}")
+    
+    # Enhanced mapping during component parsing
+    def _parse_component(self, comp_elem: etree.Element, xml_helper: SimpleXMLHelper, 
+                        component_type: ComponentType, package_path: str) -> Optional[Component]:
+        """Parse individual component - Enhanced with UUID mapping for connections"""
+        try:
+            short_name = xml_helper.get_text(comp_elem, "SHORT-NAME")
+            if not short_name:
+                return None
+            
+            desc = self._get_description(comp_elem, xml_helper)
+            
+            component = Component(
+                short_name=short_name,
+                component_type=component_type,
+                desc=desc,
+                package_path=package_path
+            )
+            
+            # Day 5 - Store component reference mapping for connection resolution
+            component_ref = f"{package_path}/{short_name}"
+            self.component_uuid_map[component_ref] = component.uuid
+            self.component_uuid_map[short_name] = component.uuid  # Also store by name
+            
+            # Parse ports
+            ports_elem = xml_helper.find_element(comp_elem, "PORTS")
+            if ports_elem is not None:
+                ports = self._parse_ports(ports_elem, xml_helper, component.uuid)
+                component.provided_ports = [p for p in ports if p.is_provided]
+                component.required_ports = [p for p in ports if p.is_required]
+                self.parse_stats['ports_parsed'] += len(ports)
+                
+                # Day 5 - Store port reference mappings
+                for port in ports:
+                    port_ref = f"{component_ref}/{port.short_name}"
+                    full_port_path = f"{component.uuid}#{port.short_name}"
+                    self.port_uuid_map[port_ref] = port.uuid
+                    self.port_uuid_map[full_port_path] = port.uuid
+            
+            return component
+            
+        except Exception as e:
+            print(f"❌ Failed to parse component: {e}")
+            return None
+    
+    # Existing methods remain the same...
     def _parse_package_enhanced(self, pkg_elem: etree.Element, xml_helper: SimpleXMLHelper, parent_path: str = "") -> Optional[Package]:
         """Parse individual AR-PACKAGE element - Enhanced for Day 4"""
         try:
@@ -301,37 +720,6 @@ class ARXMLParser:
                     print(f"⚠️ Failed to parse component: {e}")
         
         return components
-    
-    def _parse_component(self, comp_elem: etree.Element, xml_helper: SimpleXMLHelper, 
-                        component_type: ComponentType, package_path: str) -> Optional[Component]:
-        """Parse individual component"""
-        try:
-            short_name = xml_helper.get_text(comp_elem, "SHORT-NAME")
-            if not short_name:
-                return None
-            
-            desc = self._get_description(comp_elem, xml_helper)
-            
-            component = Component(
-                short_name=short_name,
-                component_type=component_type,
-                desc=desc,
-                package_path=package_path
-            )
-            
-            # Parse ports
-            ports_elem = xml_helper.find_element(comp_elem, "PORTS")
-            if ports_elem is not None:
-                ports = self._parse_ports(ports_elem, xml_helper, component.uuid)
-                component.provided_ports = [p for p in ports if p.is_provided]
-                component.required_ports = [p for p in ports if p.is_required]
-                self.parse_stats['ports_parsed'] += len(ports)
-            
-            return component
-            
-        except Exception as e:
-            print(f"❌ Failed to parse component: {e}")
-            return None
     
     def _parse_ports(self, ports_elem: etree.Element, xml_helper: SimpleXMLHelper, component_uuid: str) -> List[Port]:
         """Parse ports from PORTS section"""
@@ -497,7 +885,84 @@ class ARXMLParser:
         except Exception:
             return {}
     
-    # Day 4 - New methods for interface support
+    def _get_connection_metadata(self) -> Dict[str, Any]:
+        """Get connection metadata for response - NEW for Day 5"""
+        try:
+            if self.parsed_connections:
+                connection_metadata = {}
+                
+                for connection in self.parsed_connections:
+                    connection_metadata[connection.uuid] = {
+                        'short_name': connection.short_name,
+                        'connection_type': connection.connection_type.value,
+                        'provider_component': connection.provider_endpoint.component_uuid,
+                        'provider_port': connection.provider_endpoint.port_uuid,
+                        'requester_component': connection.requester_endpoint.component_uuid,
+                        'requester_port': connection.requester_endpoint.port_uuid,
+                        'description': connection.desc
+                    }
+                
+                return {
+                    'connections': connection_metadata,
+                    'connection_count': len(self.parsed_connections),
+                    'connection_types': self._get_connection_type_counts()
+                }
+            return {'connections': {}, 'connection_count': 0, 'connection_types': {}}
+        except Exception as e:
+            print(f"⚠️ Connection metadata generation failed: {e}")
+            return {'connections': {}, 'connection_count': 0, 'connection_types': {}}
+    
+    def _get_connection_type_counts(self) -> Dict[str, int]:
+        """Get count of connections by type - NEW for Day 5"""
+        try:
+            type_counts = {}
+            for connection in self.parsed_connections:
+                conn_type = connection.connection_type.value
+                type_counts[conn_type] = type_counts.get(conn_type, 0) + 1
+            return type_counts
+        except Exception:
+            return {}
+    
+    # Day 5 - New public methods for connection access
+    def get_parsed_connections(self) -> List[Connection]:
+        """Get all parsed connections - NEW for Day 5"""
+        return self.parsed_connections.copy()
+    
+    def get_connections_for_component(self, component_uuid: str) -> List[Connection]:
+        """Get connections involving a specific component - NEW for Day 5"""
+        try:
+            connections = []
+            for connection in self.parsed_connections:
+                if connection.involves_component(component_uuid):
+                    connections.append(connection)
+            return connections
+        except Exception as e:
+            print(f"❌ Get connections for component failed: {e}")
+            return []
+    
+    def get_connections_for_port(self, port_uuid: str) -> List[Connection]:
+        """Get connections involving a specific port - NEW for Day 5"""
+        try:
+            connections = []
+            for connection in self.parsed_connections:
+                if connection.involves_port(port_uuid):
+                    connections.append(connection)
+            return connections
+        except Exception as e:
+            print(f"❌ Get connections for port failed: {e}")
+            return []
+    
+    def get_connection_summary(self) -> Dict[str, Any]:
+        """Get connection parsing summary - NEW for Day 5"""
+        return {
+            'total_connections': len(self.parsed_connections),
+            'connection_types': self._get_connection_type_counts(),
+            'parse_time': self.parse_stats.get('parse_time', 0),
+            'component_mappings': len(self.component_uuid_map),
+            'port_mappings': len(self.port_uuid_map)
+        }
+    
+    # Day 4 - Existing interface support methods remain the same
     def get_parsed_interfaces(self) -> Dict[str, Interface]:
         """Get all parsed interfaces"""
         return self.parsed_interfaces.copy()
