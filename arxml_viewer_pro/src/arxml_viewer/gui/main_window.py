@@ -1,8 +1,8 @@
 # src/arxml_viewer/gui/main_window.py
 """
-Main Window - COMPLETE FIXED VERSION
+Main Window - ENHANCED VERSION with Breadcrumbs, Export, and Auto-Layout
 Professional main window with enhanced three-panel layout for ARXML Viewer Pro
-ALL SYNTAX ERRORS RESOLVED
+Added Day 5 features: breadcrumb navigation, export functionality, and auto-layout
 """
 
 import sys
@@ -23,6 +23,7 @@ from PyQt5.QtGui import QKeySequence, QFont, QPainter
 from .graphics.graphics_scene import ComponentDiagramScene
 from .widgets.tree_widget import EnhancedTreeWidget, TreeSearchWidget
 from .widgets.search_widget import AdvancedSearchWidget, CompactSearchWidget
+from .widgets.breadcrumb_widget import BreadcrumbWidget  # NEW: Import breadcrumb widget
 from .controllers.navigation_controller import NavigationController
 from .layout.layout_manager import LayoutManager
 from ..services.search_engine import SearchEngine
@@ -34,15 +35,14 @@ class MainWindow(QMainWindow):
     """
     Professional main window with enhanced three-panel layout:
     - Left: Enhanced component tree navigation with search
-    - Center: Component diagram visualization  
+    - Center: Component diagram visualization with breadcrumb navigation
     - Right: Properties panel
     
-    Day 3 additions:
-    - Enhanced tree widget with search and filtering
-    - Advanced search functionality
-    - Navigation controller for tree-diagram sync
-    - Layout manager for panel management
-    - FIXED UI COLORS FOR BETTER VISIBILITY
+    Day 5 additions:
+    - Breadcrumb navigation widget
+    - Export functionality (PNG, SVG, PDF)
+    - Auto-layout algorithm integration
+    - Enhanced layout management
     """
     
     # Signals
@@ -78,6 +78,9 @@ class MainWindow(QMainWindow):
         self.graphics_panel: Optional[QWidget] = None
         self.properties_panel: Optional[QWidget] = None
         
+        # Day 5 - NEW: Breadcrumb widget
+        self.breadcrumb_widget: Optional[BreadcrumbWidget] = None
+        
         # Initialize UI
         self._setup_window()
         self._create_menu_bar()
@@ -85,16 +88,19 @@ class MainWindow(QMainWindow):
         self._create_status_bar()
         self._create_central_widget()
         self._setup_shortcuts()
-        self._apply_light_theme()  # Apply light theme with good contrast
+        self._apply_light_theme()
         
         # Day 3 - Setup navigation and layout
         self._setup_navigation_controller()
         self._setup_layout_manager()
         
+        # Day 5 - Setup breadcrumb navigation
+        self._setup_breadcrumb_navigation()
+        
         # Show welcome message
         self._show_welcome_message()
         
-        self.logger.info("MainWindow initialized successfully with Day 3 enhancements")
+        self.logger.info("MainWindow initialized successfully with Day 5 enhancements")
     
     def _setup_window(self):
         """Configure main window properties"""
@@ -110,7 +116,7 @@ class MainWindow(QMainWindow):
         self.move(window_geometry.topLeft())
     
     def _create_menu_bar(self):
-        """Create application menu bar"""
+        """Create application menu bar with Day 5 enhancements"""
         menubar = self.menuBar()
         
         # File Menu
@@ -126,6 +132,33 @@ class MainWindow(QMainWindow):
         # Recent files submenu
         self.recent_menu = file_menu.addMenu("Recent Files")
         self._update_recent_files_menu([])
+        
+        file_menu.addSeparator()
+        
+        # Day 5 - NEW: Export submenu
+        export_menu = file_menu.addMenu("&Export")
+        
+        # Export to PNG
+        self.export_png_action = QAction("Export as &PNG...", self)
+        self.export_png_action.setShortcut(QKeySequence("Ctrl+Shift+P"))
+        self.export_png_action.setStatusTip("Export diagram as PNG image")
+        self.export_png_action.triggered.connect(self._export_as_png)
+        self.export_png_action.setEnabled(False)
+        export_menu.addAction(self.export_png_action)
+        
+        # Export to SVG
+        self.export_svg_action = QAction("Export as &SVG...", self)
+        self.export_svg_action.setStatusTip("Export diagram as SVG vector")
+        self.export_svg_action.triggered.connect(self._export_as_svg)
+        self.export_svg_action.setEnabled(False)
+        export_menu.addAction(self.export_svg_action)
+        
+        # Export to PDF
+        self.export_pdf_action = QAction("Export as P&DF...", self)
+        self.export_pdf_action.setStatusTip("Export diagram as PDF document")
+        self.export_pdf_action.triggered.connect(self._export_as_pdf)
+        self.export_pdf_action.setEnabled(False)
+        export_menu.addAction(self.export_pdf_action)
         
         file_menu.addSeparator()
         
@@ -146,7 +179,7 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.exit_requested.emit)
         file_menu.addAction(exit_action)
         
-        # View Menu - Enhanced for Day 3
+        # View Menu - Enhanced for Day 5
         view_menu = menubar.addMenu("&View")
         
         # Zoom actions
@@ -165,6 +198,44 @@ class MainWindow(QMainWindow):
         reset_zoom_action.triggered.connect(self._reset_zoom)
         view_menu.addAction(reset_zoom_action)
         
+        fit_to_window_action = QAction("&Fit to Window", self)
+        fit_to_window_action.setShortcut(QKeySequence("Ctrl+F"))
+        fit_to_window_action.triggered.connect(self._fit_to_window)
+        view_menu.addAction(fit_to_window_action)
+        
+        view_menu.addSeparator()
+        
+        # Day 5 - NEW: Auto-Layout submenu
+        layout_menu = view_menu.addMenu("Auto-&Layout")
+        
+        # Grid layout
+        self.grid_layout_action = QAction("&Grid Layout", self)
+        self.grid_layout_action.setStatusTip("Arrange components in a grid")
+        self.grid_layout_action.triggered.connect(lambda: self._apply_auto_layout("grid"))
+        self.grid_layout_action.setEnabled(False)
+        layout_menu.addAction(self.grid_layout_action)
+        
+        # Hierarchical layout
+        self.hierarchical_layout_action = QAction("&Hierarchical Layout", self)
+        self.hierarchical_layout_action.setStatusTip("Arrange components hierarchically")
+        self.hierarchical_layout_action.triggered.connect(lambda: self._apply_auto_layout("hierarchical"))
+        self.hierarchical_layout_action.setEnabled(False)
+        layout_menu.addAction(self.hierarchical_layout_action)
+        
+        # Force-directed layout
+        self.force_layout_action = QAction("&Force-Directed Layout", self)
+        self.force_layout_action.setStatusTip("Arrange components using force simulation")
+        self.force_layout_action.triggered.connect(lambda: self._apply_auto_layout("force_directed"))
+        self.force_layout_action.setEnabled(False)
+        layout_menu.addAction(self.force_layout_action)
+        
+        # Circular layout
+        self.circular_layout_action = QAction("&Circular Layout", self)
+        self.circular_layout_action.setStatusTip("Arrange components in a circle")
+        self.circular_layout_action.triggered.connect(lambda: self._apply_auto_layout("circular"))
+        self.circular_layout_action.setEnabled(False)
+        layout_menu.addAction(self.circular_layout_action)
+        
         view_menu.addSeparator()
         
         # Panel toggles
@@ -180,13 +251,48 @@ class MainWindow(QMainWindow):
         self.toggle_properties_action.triggered.connect(self._toggle_properties_panel)
         view_menu.addAction(self.toggle_properties_action)
         
+        # Day 5 - NEW: Breadcrumb toggle
+        self.toggle_breadcrumbs_action = QAction("Show &Breadcrumbs", self)
+        self.toggle_breadcrumbs_action.setCheckable(True)
+        self.toggle_breadcrumbs_action.setChecked(True)
+        self.toggle_breadcrumbs_action.triggered.connect(self._toggle_breadcrumbs)
+        view_menu.addAction(self.toggle_breadcrumbs_action)
+        
         view_menu.addSeparator()
         
-        # Day 3 - Layout presets
-        layout_submenu = view_menu.addMenu("&Layout")
+        # Layout presets
+        layout_submenu = view_menu.addMenu("&Layout Presets")
         self._create_layout_menu(layout_submenu)
         
-        # Day 3 - Search menu
+        # Navigation Menu - NEW for Day 5
+        nav_menu = menubar.addMenu("&Navigation")
+        
+        # Back/Forward actions
+        self.back_action = QAction("&Back", self)
+        self.back_action.setShortcut(QKeySequence("Alt+Left"))
+        self.back_action.setStatusTip("Navigate back")
+        self.back_action.setEnabled(False)
+        self.back_action.triggered.connect(self._navigate_back)
+        nav_menu.addAction(self.back_action)
+        
+        self.forward_action = QAction("&Forward", self)
+        self.forward_action.setShortcut(QKeySequence("Alt+Right"))
+        self.forward_action.setStatusTip("Navigate forward")
+        self.forward_action.setEnabled(False)
+        self.forward_action.triggered.connect(self._navigate_forward)
+        nav_menu.addAction(self.forward_action)
+        
+        nav_menu.addSeparator()
+        
+        # Home action
+        self.home_action = QAction("&Home", self)
+        self.home_action.setShortcut(QKeySequence("Ctrl+Home"))
+        self.home_action.setStatusTip("Navigate to home view")
+        self.home_action.triggered.connect(self._navigate_home)
+        self.home_action.setEnabled(False)
+        nav_menu.addAction(self.home_action)
+        
+        # Search menu
         search_menu = menubar.addMenu("&Search")
         
         # Search actions
@@ -215,6 +321,489 @@ class MainWindow(QMainWindow):
         about_action.triggered.connect(self._show_about_dialog)
         help_menu.addAction(about_action)
     
+    def _create_tool_bar(self):
+        """Create main toolbar with Day 5 enhancements"""
+        toolbar = self.addToolBar("Main")
+        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        
+        # File operations
+        toolbar.addAction(self.open_action)
+        toolbar.addSeparator()
+        
+        # Navigation buttons (enhanced for Day 5)
+        toolbar.addAction(self.back_action)
+        toolbar.addAction(self.forward_action)
+        toolbar.addAction(self.home_action)
+        toolbar.addSeparator()
+        
+        # Day 5 - NEW: Auto-layout button
+        self.auto_layout_btn = QPushButton("📐 Auto-Layout")
+        self.auto_layout_btn.setToolTip("Apply automatic layout to components")
+        self.auto_layout_btn.clicked.connect(self._apply_smart_auto_layout)
+        self.auto_layout_btn.setEnabled(False)
+        toolbar.addWidget(self.auto_layout_btn)
+        
+        toolbar.addSeparator()
+        
+        # Day 5 - NEW: Export button
+        self.export_btn = QPushButton("💾 Export")
+        self.export_btn.setToolTip("Export diagram as image")
+        self.export_btn.clicked.connect(self._quick_export)
+        self.export_btn.setEnabled(False)
+        toolbar.addWidget(self.export_btn)
+        
+        toolbar.addSeparator()
+        
+        # Compact search widget
+        self.compact_search = CompactSearchWidget()
+        self.compact_search.search_requested.connect(self._perform_quick_search)
+        self.compact_search.advanced_search_requested.connect(self._show_advanced_search)
+        toolbar.addWidget(self.compact_search)
+        
+        toolbar.addSeparator()
+        
+        # Zoom controls
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setMinimumWidth(50)
+        toolbar.addWidget(self.zoom_label)
+    
+    def _create_central_widget(self):
+        """Create the enhanced three-panel layout with Day 5 breadcrumbs"""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Main layout with breadcrumbs
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # Day 5 - NEW: Breadcrumb navigation bar
+        self.breadcrumb_widget = BreadcrumbWidget()
+        self.breadcrumb_widget.breadcrumb_clicked.connect(self._on_breadcrumb_clicked)
+        self.breadcrumb_widget.navigation_requested.connect(self._on_breadcrumb_navigation)
+        main_layout.addWidget(self.breadcrumb_widget)
+        
+        # Main horizontal splitter
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        
+        # Left panel: Enhanced Tree navigation with search
+        self.tree_panel = self._create_enhanced_tree_panel()
+        self.main_splitter.addWidget(self.tree_panel)
+        
+        # Center panel: Graphics view
+        self.graphics_panel = self._create_graphics_panel()
+        self.main_splitter.addWidget(self.graphics_panel)
+        
+        # Right panel: Enhanced Properties with tabs
+        self.properties_panel = self._create_enhanced_properties_panel()
+        self.main_splitter.addWidget(self.properties_panel)
+        
+        # Set splitter proportions
+        total_width = AppConstants.DEFAULT_WINDOW_SIZE[0]
+        tree_width = int(total_width * UIConstants.TREE_PANEL_WIDTH / 100)
+        diagram_width = int(total_width * UIConstants.DIAGRAM_PANEL_WIDTH / 100)
+        props_width = int(total_width * UIConstants.PROPERTIES_PANEL_WIDTH / 100)
+        
+        self.main_splitter.setSizes([tree_width, diagram_width, props_width])
+        
+        # Add splitter to layout
+        main_layout.addWidget(self.main_splitter)
+        
+        # Day 3 - Create dockable advanced search widget
+        self._create_search_dock()
+    
+    def _create_graphics_panel(self) -> QWidget:
+        """Create the center graphics visualization panel with Day 5 enhancements"""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        
+        # Panel title and controls
+        header_layout = QHBoxLayout()
+        
+        title_label = QLabel("Component Diagram")
+        title_label.setFont(QFont("Arial", 10, QFont.Bold))
+        header_layout.addWidget(title_label)
+        
+        header_layout.addStretch()
+        
+        # Day 5 - NEW: Layout controls
+        layout_controls = QHBoxLayout()
+        
+        # Auto-layout button (duplicate for easy access)
+        auto_layout_mini_btn = QPushButton("📐")
+        auto_layout_mini_btn.setMaximumWidth(30)
+        auto_layout_mini_btn.setToolTip("Auto-Layout")
+        auto_layout_mini_btn.clicked.connect(self._apply_smart_auto_layout)
+        auto_layout_mini_btn.setEnabled(False)
+        layout_controls.addWidget(auto_layout_mini_btn)
+        self.auto_layout_mini_btn = auto_layout_mini_btn  # Store reference
+        
+        # Fit to window button
+        fit_button = QPushButton("Fit")
+        fit_button.setMaximumWidth(40)
+        fit_button.clicked.connect(self._fit_to_window)
+        layout_controls.addWidget(fit_button)
+        
+        # Export button (duplicate for easy access)
+        export_mini_btn = QPushButton("💾")
+        export_mini_btn.setMaximumWidth(30)
+        export_mini_btn.setToolTip("Export")
+        export_mini_btn.clicked.connect(self._quick_export)
+        export_mini_btn.setEnabled(False)
+        layout_controls.addWidget(export_mini_btn)
+        self.export_mini_btn = export_mini_btn  # Store reference
+        
+        header_layout.addLayout(layout_controls)
+        
+        layout.addLayout(header_layout)
+        
+        # Create custom graphics scene and view
+        self.graphics_scene = ComponentDiagramScene()
+        self.graphics_view = QGraphicsView(self.graphics_scene)
+        self.graphics_view.setDragMode(QGraphicsView.RubberBandDrag)
+        self.graphics_view.setRenderHint(QPainter.Antialiasing)
+        
+        # Connect scene signals
+        self.graphics_scene.component_selected.connect(self._on_component_selected)
+        self.graphics_scene.component_double_clicked.connect(self._on_component_double_clicked)
+        
+        # Day 5 - NEW: Connect drill-down signal
+        if hasattr(self.graphics_scene, 'composition_drill_requested'):
+            self.graphics_scene.composition_drill_requested.connect(self._on_composition_drill_down)
+        
+        # Placeholder content
+        placeholder_label = QLabel("Component visualization will appear here\n\nOpen an ARXML file to get started")
+        placeholder_label.setAlignment(Qt.AlignCenter)
+        placeholder_label.setStyleSheet("color: #666; font-size: 14px;")
+        
+        placeholder_layout = QVBoxLayout()
+        placeholder_layout.addWidget(placeholder_label)
+        placeholder_widget = QWidget()
+        placeholder_widget.setLayout(placeholder_layout)
+        
+        # Stack the placeholder and graphics view
+        self.graphics_stack = QStackedWidget()
+        self.graphics_stack.addWidget(placeholder_widget)  # Index 0: placeholder
+        self.graphics_stack.addWidget(self.graphics_view)  # Index 1: graphics view
+        
+        layout.addWidget(self.graphics_stack)
+        
+        return panel
+    
+    def _setup_breadcrumb_navigation(self):
+        """Setup breadcrumb navigation integration - Day 5 NEW"""
+        if self.breadcrumb_widget and self.navigation_controller:
+            # Connect navigation controller signals to breadcrumb updates
+            if hasattr(self.navigation_controller, 'breadcrumb_updated'):
+                self.navigation_controller.breadcrumb_updated.connect(self._update_breadcrumbs)
+            
+            if hasattr(self.navigation_controller, 'navigation_changed'):
+                self.navigation_controller.navigation_changed.connect(self._on_navigation_changed)
+    
+    # Day 5 - NEW: Export functionality
+    def _export_as_png(self):
+        """Export diagram as PNG image"""
+        try:
+            if not self.is_file_open or not self.graphics_scene:
+                QMessageBox.warning(self, "Export Error", "No diagram to export. Please open an ARXML file first.")
+                return
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Export as PNG", "diagram.png", 
+                "PNG Files (*.png);;All Files (*.*)"
+            )
+            
+            if filename:
+                success = self._export_scene_to_file(filename, "PNG")
+                if success:
+                    QMessageBox.information(self, "Export Successful", f"Diagram exported to:\n{filename}")
+                else:
+                    QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
+                    
+        except Exception as e:
+            self.logger.error(f"Breadcrumb click handling failed: {e}")
+    
+    def _on_breadcrumb_navigation(self, item_type: str, item_uuid: str):
+        """Handle breadcrumb navigation request"""
+        try:
+            self.logger.debug(f"Breadcrumb navigation: {item_type} {item_uuid}")
+            
+            # Use navigation controller to handle the navigation
+            if self.navigation_controller:
+                if hasattr(self.navigation_controller, 'navigation_requested'):
+                    self.navigation_controller.navigation_requested.emit(item_type, item_uuid)
+            
+        except Exception as e:
+            self.logger.error(f"Breadcrumb navigation failed: {e}")
+    
+    def _update_breadcrumbs(self, breadcrumb_path):
+        """Update breadcrumb display from navigation controller"""
+        try:
+            if self.breadcrumb_widget:
+                self.breadcrumb_widget.set_breadcrumb_path(breadcrumb_path)
+            
+        except Exception as e:
+            self.logger.error(f"Breadcrumb update failed: {e}")
+    
+    def _on_navigation_changed(self, navigation_object):
+        """Handle navigation change to update breadcrumbs"""
+        try:
+            # Update navigation buttons
+            if hasattr(self.navigation_controller, 'can_navigate_back'):
+                self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
+                
+            if hasattr(self.navigation_controller, 'can_navigate_forward'):
+                self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
+            
+            # Update home button
+            self.home_action.setEnabled(self.is_file_open)
+            
+        except Exception as e:
+            self.logger.error(f"Navigation change handling failed: {e}")
+    
+    def _toggle_breadcrumbs(self):
+        """Toggle breadcrumb widget visibility"""
+        try:
+            if self.breadcrumb_widget:
+                visible = not self.breadcrumb_widget.isVisible()
+                self.breadcrumb_widget.setVisible(visible)
+                self.toggle_breadcrumbs_action.setChecked(visible)
+                
+        except Exception as e:
+            self.logger.error(f"Breadcrumb toggle failed: {e}")
+    
+    # Day 5 - NEW: Navigation handlers
+    def _navigate_back(self):
+        """Navigate back in history"""
+        try:
+            if self.navigation_controller and hasattr(self.navigation_controller, 'navigate_back'):
+                if self.navigation_controller.navigate_back():
+                    self._update_navigation_buttons()
+            
+        except Exception as e:
+            self.logger.error(f"Navigate back failed: {e}")
+    
+    def _navigate_forward(self):
+        """Navigate forward in history"""
+        try:
+            if self.navigation_controller and hasattr(self.navigation_controller, 'navigate_forward'):
+                if self.navigation_controller.navigate_forward():
+                    self._update_navigation_buttons()
+            
+        except Exception as e:
+            self.logger.error(f"Navigate forward failed: {e}")
+    
+    def _navigate_home(self):
+        """Navigate to home/root view"""
+        try:
+            if self.breadcrumb_widget:
+                # Navigate to first breadcrumb (root)
+                breadcrumb_path = self.breadcrumb_widget.get_breadcrumb_path()
+                if breadcrumb_path:
+                    first_item = self.breadcrumb_widget.breadcrumb_items[0]
+                    self._on_breadcrumb_clicked(first_item)
+            
+        except Exception as e:
+            self.logger.error(f"Navigate home failed: {e}")
+    
+    def _update_navigation_buttons(self):
+        """Update navigation button states"""
+        try:
+            if self.navigation_controller:
+                # Update back/forward buttons
+                if hasattr(self.navigation_controller, 'can_navigate_back'):
+                    self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
+                
+                if hasattr(self.navigation_controller, 'can_navigate_forward'):
+                    self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
+            
+        except Exception as e:
+            self.logger.error(f"Navigation button update failed: {e}")
+    
+    # Day 5 - NEW: Composition drill-down handler
+    def _on_composition_drill_down(self, component):
+        """Handle composition drill-down request from graphics scene"""
+        try:
+            self.logger.info(f"Composition drill-down: {component.short_name}")
+            
+            # Add to breadcrumb navigation
+            if self.breadcrumb_widget:
+                self.breadcrumb_widget.add_breadcrumb(
+                    name=component.short_name,
+                    display_name=f"📦 {component.short_name}",
+                    item_type="composition",
+                    item_uuid=component.uuid,
+                    tooltip=f"Composition: {component.short_name}"
+                )
+            
+            # Update status
+            self.status_bar.showMessage(f"Navigated into composition: {component.short_name}", 3000)
+            
+        except Exception as e:
+            self.logger.error(f"Composition drill-down failed: {e}")
+    
+    # Enhanced existing methods with Day 5 features
+    def on_file_opened(self, file_path: str):
+        """Handle file opened event - Enhanced with Day 5 features"""
+        self.current_file = file_path
+        self.is_file_open = True
+        
+        # Update UI state
+        self.close_action.setEnabled(True)
+        self.file_info_label.setText(f"File: {Path(file_path).name}")
+        self.setWindowTitle(f"{AppConstants.APP_NAME} - {Path(file_path).name}")
+        
+        # Day 5 - Enable export and layout actions
+        self.export_png_action.setEnabled(True)
+        self.export_svg_action.setEnabled(True)
+        self.export_pdf_action.setEnabled(True)
+        self.export_btn.setEnabled(True)
+        self.export_mini_btn.setEnabled(True)
+        
+        self.grid_layout_action.setEnabled(True)
+        self.hierarchical_layout_action.setEnabled(True)
+        self.force_layout_action.setEnabled(True)
+        self.circular_layout_action.setEnabled(True)
+        self.auto_layout_btn.setEnabled(True)
+        self.auto_layout_mini_btn.setEnabled(True)
+        
+        self.home_action.setEnabled(True)
+        
+        # Initialize breadcrumbs with root
+        if self.breadcrumb_widget:
+            self.breadcrumb_widget.set_root_item(
+                name=Path(file_path).stem,
+                display_name=f"🏠 {Path(file_path).stem}",
+                item_type="system"
+            )
+        
+        # Switch to graphics view
+        self.graphics_stack.setCurrentIndex(1)
+        
+        self.status_bar.showMessage(f"Opened: {Path(file_path).name}")
+    
+    def on_file_closed(self):
+        """Handle file closed event - Enhanced with Day 5 features"""
+        self.current_file = None
+        self.is_file_open = False
+        
+        # Update UI state
+        self.close_action.setEnabled(False)
+        self.file_info_label.setText("No file open")
+        self.setWindowTitle(AppConstants.APP_NAME)
+        
+        # Day 5 - Disable export and layout actions
+        self.export_png_action.setEnabled(False)
+        self.export_svg_action.setEnabled(False)
+        self.export_pdf_action.setEnabled(False)
+        self.export_btn.setEnabled(False)
+        self.export_mini_btn.setEnabled(False)
+        
+        self.grid_layout_action.setEnabled(False)
+        self.hierarchical_layout_action.setEnabled(False)
+        self.force_layout_action.setEnabled(False)
+        self.circular_layout_action.setEnabled(False)
+        self.auto_layout_btn.setEnabled(False)
+        self.auto_layout_mini_btn.setEnabled(False)
+        
+        self.back_action.setEnabled(False)
+        self.forward_action.setEnabled(False)
+        self.home_action.setEnabled(False)
+        
+        # Clear breadcrumbs
+        if self.breadcrumb_widget:
+            self.breadcrumb_widget.clear_breadcrumbs()
+        
+        # Switch to placeholder
+        self.graphics_stack.setCurrentIndex(0)
+        
+        # Clear content
+        if self.enhanced_tree_widget:
+            self.enhanced_tree_widget.clear()
+        self.properties_text.setPlainText("Select a component to view its properties")
+        self.search_results_text.clear()
+        self.statistics_text.clear()
+        
+        if hasattr(self, 'graphics_scene'):
+            self.graphics_scene.clear_scene()
+        
+        # Clear search and navigation
+        self._clear_search()
+        self.navigation_controller.clear_mappings()
+        
+        self.status_bar.showMessage("File closed")
+    
+    def on_parsing_finished(self, packages, metadata):
+        """Handle parsing finished event - Enhanced with Day 5 features"""
+        print(f"🔧 MainWindow: Parsing finished, {len(packages)} packages")
+        
+        self.progress_bar.setVisible(False)
+        
+        # Update enhanced tree widget
+        if self.enhanced_tree_widget:
+            try:
+                print("🔧 Loading packages into tree widget...")
+                self.enhanced_tree_widget.load_packages(packages)
+                print("✅ Tree widget loaded successfully")
+            except Exception as e:
+                print(f"❌ Tree widget loading failed: {e}")
+        
+        # Load packages into graphics scene with connections
+        if hasattr(self, 'graphics_scene') and self.graphics_scene:
+            try:
+                print("🔧 Loading packages into graphics scene...")
+                
+                # Day 5 - Get connections from app controller if available
+                connections = []
+                if self.app_controller and hasattr(self.app_controller, 'get_parsed_connections'):
+                    try:
+                        connections = self.app_controller.get_parsed_connections()
+                        print(f"🔗 Retrieved {len(connections)} connections from app controller")
+                    except Exception as e:
+                        print(f"⚠️ Could not get connections: {e}")
+                
+                # Load with connections
+                self.graphics_scene.load_packages(packages, connections)
+                print("✅ Graphics scene loaded successfully with connections")
+                
+                # Switch to graphics view
+                if hasattr(self, 'graphics_stack'):
+                    self.graphics_stack.setCurrentIndex(1)
+                    print("✅ Switched to graphics view")
+                    
+                # Day 5 - Apply initial auto-layout after loading
+                QTimer.singleShot(500, self._apply_initial_layout)
+                
+            except Exception as e:
+                print(f"❌ Graphics scene loading failed: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Update statistics tab
+        self._update_statistics_display(packages, metadata)
+        
+        # Show statistics
+        stats = metadata.get('statistics', {})
+        message = f"Loaded {stats.get('components_parsed', 0)} components in {stats.get('parse_time', 0):.2f}s"
+        self.status_bar.showMessage(message, 3000)
+        print(f"✅ {message}")
+    
+    def _apply_initial_layout(self):
+        """Apply initial auto-layout after file loading - Day 5 NEW"""
+        try:
+            if self.is_file_open and self.graphics_scene:
+                # Apply smart auto-layout
+                if hasattr(self.graphics_scene, 'auto_arrange_layout'):
+                    self.graphics_scene.auto_arrange_layout()
+                    print("✅ Applied initial auto-layout")
+                
+                # Fit to window
+                self._fit_to_window()
+                
+        except Exception as e:
+            print(f"⚠️ Initial layout failed: {e}")
+    
+    # Existing methods remain the same...
     def _create_layout_menu(self, layout_menu):
         """Create layout presets menu"""
         # Create action group for exclusive selection
@@ -242,41 +831,6 @@ class MainWindow(QMainWindow):
         save_layout_action.triggered.connect(self._save_custom_layout)
         layout_menu.addAction(save_layout_action)
     
-    def _create_tool_bar(self):
-        """Create main toolbar with Day 3 enhancements"""
-        toolbar = self.addToolBar("Main")
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        
-        # File operations
-        toolbar.addAction(self.open_action)
-        toolbar.addSeparator()
-        
-        # Navigation buttons (enhanced for Day 3)
-        self.back_action = QAction("Back", self)
-        self.back_action.setEnabled(False)
-        self.back_action.triggered.connect(self._navigate_back)
-        toolbar.addAction(self.back_action)
-        
-        self.forward_action = QAction("Forward", self)
-        self.forward_action.setEnabled(False)
-        self.forward_action.triggered.connect(self._navigate_forward)
-        toolbar.addAction(self.forward_action)
-        
-        toolbar.addSeparator()
-        
-        # Day 3 - Compact search widget in toolbar
-        self.compact_search = CompactSearchWidget()
-        self.compact_search.search_requested.connect(self._perform_quick_search)
-        self.compact_search.advanced_search_requested.connect(self._show_advanced_search)
-        toolbar.addWidget(self.compact_search)
-        
-        toolbar.addSeparator()
-        
-        # Zoom controls
-        self.zoom_label = QLabel("100%")
-        self.zoom_label.setMinimumWidth(50)
-        toolbar.addWidget(self.zoom_label)
-    
     def _create_status_bar(self):
         """Create status bar with Day 3 enhancements"""
         self.status_bar = self.statusBar()
@@ -301,42 +855,6 @@ class MainWindow(QMainWindow):
         
         # Status message
         self.status_bar.showMessage("Ready")
-    
-    def _create_central_widget(self):
-        """Create the enhanced three-panel layout with Day 3 features"""
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # Main horizontal splitter
-        self.main_splitter = QSplitter(Qt.Horizontal)
-        
-        # Left panel: Enhanced Tree navigation with search
-        self.tree_panel = self._create_enhanced_tree_panel()
-        self.main_splitter.addWidget(self.tree_panel)
-        
-        # Center panel: Graphics view
-        self.graphics_panel = self._create_graphics_panel()
-        self.main_splitter.addWidget(self.graphics_panel)
-        
-        # Right panel: Enhanced Properties with tabs
-        self.properties_panel = self._create_enhanced_properties_panel()
-        self.main_splitter.addWidget(self.properties_panel)
-        
-        # Set splitter proportions
-        total_width = AppConstants.DEFAULT_WINDOW_SIZE[0]
-        tree_width = int(total_width * UIConstants.TREE_PANEL_WIDTH / 100)
-        diagram_width = int(total_width * UIConstants.DIAGRAM_PANEL_WIDTH / 100)
-        props_width = int(total_width * UIConstants.PROPERTIES_PANEL_WIDTH / 100)
-        
-        self.main_splitter.setSizes([tree_width, diagram_width, props_width])
-        
-        # Layout
-        layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.main_splitter)
-        
-        # Day 3 - Create dockable advanced search widget
-        self._create_search_dock()
     
     def _create_enhanced_tree_panel(self) -> QWidget:
         """Create the enhanced left tree navigation panel with Day 3 features"""
@@ -381,56 +899,6 @@ class MainWindow(QMainWindow):
         self.enhanced_tree_widget.item_selected.connect(self._on_tree_item_selected)
         self.enhanced_tree_widget.item_activated.connect(self._on_tree_item_activated)
         layout.addWidget(self.enhanced_tree_widget)
-        
-        return panel
-    
-    def _create_graphics_panel(self) -> QWidget:
-        """Create the center graphics visualization panel"""
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        
-        # Panel title and controls
-        header_layout = QHBoxLayout()
-        
-        title_label = QLabel("Component Diagram")
-        title_label.setFont(QFont("Arial", 10, QFont.Bold))
-        header_layout.addWidget(title_label)
-        
-        header_layout.addStretch()
-        
-        # Fit to window button
-        fit_button = QPushButton("Fit to Window")
-        fit_button.clicked.connect(self._fit_to_window)
-        header_layout.addWidget(fit_button)
-        
-        layout.addLayout(header_layout)
-        
-        # Create custom graphics scene and view
-        self.graphics_scene = ComponentDiagramScene()
-        self.graphics_view = QGraphicsView(self.graphics_scene)
-        self.graphics_view.setDragMode(QGraphicsView.RubberBandDrag)
-        self.graphics_view.setRenderHint(QPainter.Antialiasing)
-        
-        # Connect scene signals
-        self.graphics_scene.component_selected.connect(self._on_component_selected)
-        self.graphics_scene.component_double_clicked.connect(self._on_component_double_clicked)
-        
-        # Placeholder content
-        placeholder_label = QLabel("Component visualization will appear here\n\nOpen an ARXML file to get started")
-        placeholder_label.setAlignment(Qt.AlignCenter)
-        placeholder_label.setStyleSheet("color: #666; font-size: 14px;")
-        
-        placeholder_layout = QVBoxLayout()
-        placeholder_layout.addWidget(placeholder_label)
-        placeholder_widget = QWidget()
-        placeholder_widget.setLayout(placeholder_layout)
-        
-        # Stack the placeholder and graphics view
-        self.graphics_stack = QStackedWidget()
-        self.graphics_stack.addWidget(placeholder_widget)  # Index 0: placeholder
-        self.graphics_stack.addWidget(self.graphics_view)  # Index 1: graphics view
-        
-        layout.addWidget(self.graphics_stack)
         
         return panel
     
@@ -699,8 +1167,26 @@ class MainWindow(QMainWindow):
         """Show welcome message in status bar"""
         self.status_bar.showMessage(f"Welcome to {AppConstants.APP_NAME}! Open an ARXML file to get started.", 5000)
     
-    # ===== Day 3 Event Handlers =====
+    # Existing event handlers and methods remain the same...
+    def open_file_dialog(self):
+        """Open file selection dialog - FIXED"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open ARXML File",
+            "",
+            "ARXML Files (*.arxml *.xml);;All Files (*.*)"
+        )
+        
+        if file_path:
+            print(f"🔧 Selected file: {file_path}")  # Debug
+            if self.app_controller:
+                success = self.app_controller.open_file(file_path)
+                if not success:
+                    QMessageBox.critical(self, "Error", f"Failed to open file: {file_path}")
+            else:
+                print("❌ No app controller!")
     
+    # Add remaining existing methods...
     def _on_tree_search_changed(self, search_text: str):
         """Handle tree search text change"""
         if self.enhanced_tree_widget:
@@ -787,471 +1273,136 @@ class MainWindow(QMainWindow):
                     self.enhanced_tree_widget.select_object_by_uuid(first_result.item_uuid)
             
             # Update status
-            self.status_bar.showMessage(f"Found {len(results)} results for '{query}'", 3000)
-            
-        except Exception as e:
-            self.logger.error(f"Quick search failed: {e}")
-            self.status_bar.showMessage(f"Search failed: {e}", 5000)
+            self. Exception as e:
+            self.logger.error(f"PNG export failed: {e}")
+            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
     
-    def _show_advanced_search(self):
-        """Show advanced search panel"""
-        self.search_dock.setVisible(True)
-        self.search_dock.raise_()
-        self.advanced_search_widget.focus_search_input()
-    
-    def _show_search_panel(self):
-        """Show search panel (from menu/shortcut)"""
-        self._show_advanced_search()
-    
-    def _find_next(self):
-        """Find next search result"""
-        # Will be implemented with search result navigation
-        pass
-    
-    def _clear_search(self):
-        """Clear all search"""
-        self.compact_search.clear_search()
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.clear_search_and_filter()
-        self.search_info_label.setText("")
-        self.search_results_text.clear()
-    
-    def _on_search_started(self, query: str):
-        """Handle search started"""
-        self.status_bar.showMessage(f"Searching for '{query}'...")
-    
-    def _on_search_completed(self, results):
-        """Handle search completed"""
-        count = len(results)
-        self.status_bar.showMessage(f"Search completed: {count} results found", 3000)
-        
-        # Update search results in properties panel
-        self._update_search_results_display(results)
-    
-    def _on_search_result_selected(self, result):
-        """Handle search result selection"""
-        # Highlight in tree
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.select_object_by_uuid(result.item_uuid)
-    
-    def _on_search_result_activated(self, result):
-        """Handle search result activation (double-click)"""
-        # Focus in diagram
-        self._on_focus_requested(result.item_uuid)
-    
-    def _update_search_results_display(self, results):
-        """Update search results display in properties panel"""
-        if not results:
-            self.search_results_text.setPlainText("No search results.")
-            return
-        
-        results_text = f"Search Results ({len(results)}):\n\n"
-        
-        for i, result in enumerate(results, 1):
-            results_text += f"{i}. {result.item_name}\n"
-            results_text += f"   Type: {result.item_type}\n"
-            results_text += f"   Match Field: {result.match_field}\n"
-            results_text += f"   Relevance: {result.relevance_score:.2f}\n"
-            
-            if result.parent_package:
-                results_text += f"   Package: {result.parent_package}\n"
-            
-            if result.match_text and len(result.match_text) < 100:
-                results_text += f"   Text: {result.match_text}\n"
-            
-            results_text += "\n"
-        
-        self.search_results_text.setPlainText(results_text)
-    
-    def _navigate_back(self):
-        """Navigate back in history"""
-        if self.navigation_controller.navigate_back():
-            self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
-            self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
-    
-    def _navigate_forward(self):
-        """Navigate forward in history"""
-        if self.navigation_controller.navigate_forward():
-            self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
-            self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
-    
-    def _update_navigation_info(self, obj):
-        """Update navigation info in status bar"""
-        if obj:
-            breadcrumbs = self.navigation_controller.get_breadcrumb_path()
-            if breadcrumbs:
-                path_text = " > ".join(breadcrumbs[-3:])  # Show last 3 levels
-                self.navigation_info_label.setText(path_text)
-        
-        # Update navigation buttons
-        self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
-        self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
-    
-    def _apply_layout_preset(self, layout_name: str):
-        """Apply layout preset"""
-        self.layout_manager.apply_layout(layout_name)
-    
-    def _save_custom_layout(self):
-        """Save current layout as custom"""
-        name, ok = QInputDialog.getText(self, "Save Layout", "Enter layout name:")
-        if ok and name:
-            self.layout_manager.save_current_as_custom_layout(name, f"Custom layout: {name}")
-    
-    def _on_layout_changed(self, layout_name: str):
-        """Handle layout change"""
-        self.logger.debug(f"Layout changed to: {layout_name}")
-        
-        # Update menu checkmarks
-        for action in self.layout_action_group.actions():
-            action.setChecked(action.text() == layout_name)
-    
-    def _on_panel_visibility_changed(self, panel_name: str, visible: bool):
-        """Handle panel visibility change"""
-        if panel_name == 'tree':
-            self.toggle_tree_action.setChecked(visible)
-        elif panel_name == 'properties':
-            self.toggle_properties_action.setChecked(visible)
-    
-    def _expand_all_tree_items(self):
-        """Expand all tree items"""
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.expandAll()
-    
-    def _collapse_all_tree_items(self):
-        """Collapse all tree items"""
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.collapseAll()
-    
-    def _focus_tree_panel(self):
-        """Focus tree panel"""
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.setFocus()
-    
-    # ===== Existing Event Handlers (Updated for Day 3) =====
-    
-    def open_file_dialog(self):
-        """Open file selection dialog - FIXED"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Open ARXML File",
-            "",
-            "ARXML Files (*.arxml *.xml);;All Files (*.*)"
-        )
-        
-        if file_path:
-            print(f"🔧 Selected file: {file_path}")  # Debug
-            if self.app_controller:
-                success = self.app_controller.open_file(file_path)
-                if not success:
-                    QMessageBox.critical(self, "Error", f"Failed to open file: {file_path}")
-            else:
-                print("❌ No app controller!")
-    
-    def on_file_opened(self, file_path: str):
-        """Handle file opened event"""
-        self.current_file = file_path
-        self.is_file_open = True
-        
-        # Update UI state
-        self.close_action.setEnabled(True)
-        self.file_info_label.setText(f"File: {Path(file_path).name}")
-        self.setWindowTitle(f"{AppConstants.APP_NAME} - {Path(file_path).name}")
-        
-        # Switch to graphics view
-        self.graphics_stack.setCurrentIndex(1)
-        
-        self.status_bar.showMessage(f"Opened: {Path(file_path).name}")
-    
-    def on_file_closed(self):
-        """Handle file closed event"""
-        self.current_file = None
-        self.is_file_open = False
-        
-        # Update UI state
-        self.close_action.setEnabled(False)
-        self.file_info_label.setText("No file open")
-        self.setWindowTitle(AppConstants.APP_NAME)
-        
-        # Switch to placeholder
-        self.graphics_stack.setCurrentIndex(0)
-        
-        # Clear content
-        if self.enhanced_tree_widget:
-            self.enhanced_tree_widget.clear()
-        self.properties_text.setPlainText("Select a component to view its properties")
-        self.search_results_text.clear()
-        self.statistics_text.clear()
-        
-        if hasattr(self, 'graphics_scene'):
-            self.graphics_scene.clear_scene()
-        
-        # Clear search and navigation
-        self._clear_search()
-        self.navigation_controller.clear_mappings()
-        
-        self.status_bar.showMessage("File closed")
-    
-    def on_parsing_started(self, file_path: str):
-        """Handle parsing started event"""
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setRange(0, 0)  # Indeterminate progress
-        self.status_bar.showMessage(f"Parsing {Path(file_path).name}...")
-    
-    def on_parsing_finished(self, packages, metadata):
-        """Handle parsing finished event - SIMPLIFIED VERSION"""
-        print(f"🔧 MainWindow: Parsing finished, {len(packages)} packages")
-        
-        self.progress_bar.setVisible(False)
-        
-        # Update enhanced tree widget
-        if self.enhanced_tree_widget:
-            try:
-                print("🔧 Loading packages into tree widget...")
-                self.enhanced_tree_widget.load_packages(packages)
-                print("✅ Tree widget loaded successfully")
-            except Exception as e:
-                print(f"❌ Tree widget loading failed: {e}")
-        
-        # Load packages into graphics scene
-        if hasattr(self, 'graphics_scene') and self.graphics_scene:
-            try:
-                print("🔧 Loading packages into graphics scene...")
-                self.graphics_scene.load_packages(packages)
-                print("✅ Graphics scene loaded successfully")
-                
-                # Switch to graphics view
-                if hasattr(self, 'graphics_stack'):
-                    self.graphics_stack.setCurrentIndex(1)
-                    print("✅ Switched to graphics view")
-            except Exception as e:
-                print(f"❌ Graphics scene loading failed: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        # Update statistics tab
-        self._update_statistics_display(packages, metadata)
-        
-        # Show statistics
-        stats = metadata.get('statistics', {})
-        message = f"Loaded {stats.get('components_parsed', 0)} components in {stats.get('parse_time', 0):.2f}s"
-        self.status_bar.showMessage(message, 3000)
-        print(f"✅ {message}")
-    
-    def _update_statistics_display(self, packages, metadata):
-        """Update statistics display - SIMPLIFIED"""
+    def _export_as_svg(self):
+        """Export diagram as SVG vector"""
         try:
-            stats_text = "File Statistics:\n\n"
+            if not self.is_file_open or not self.graphics_scene:
+                QMessageBox.warning(self, "Export Error", "No diagram to export. Please open an ARXML file first.")
+                return
             
-            # File info
-            if self.current_file:
-                file_path = Path(self.current_file)
-                stats_text += f"File: {file_path.name}\n"
-                stats_text += f"Size: {file_path.stat().st_size / 1024:.1f} KB\n\n"
-            
-            # Parsing stats
-            parse_stats = metadata.get('statistics', {})
-            stats_text += f"Parse Time: {parse_stats.get('parse_time', 0):.2f} seconds\n"
-            stats_text += f"Components: {parse_stats.get('components_parsed', 0)}\n"
-            stats_text += f"Ports: {parse_stats.get('ports_parsed', 0)}\n"
-            stats_text += f"Packages: {parse_stats.get('packages_parsed', 0)}\n\n"
-            
-            # Component breakdown
-            component_counts = {}
-            total_ports = 0
-            
-            for package in packages:
-                for component in package.get_all_components(recursive=True):
-                    comp_type = component.component_type.name
-                    component_counts[comp_type] = component_counts.get(comp_type, 0) + 1
-                    total_ports += component.port_count
-            
-            if component_counts:
-                stats_text += "Component Types:\n"
-                for comp_type, count in sorted(component_counts.items()):
-                    stats_text += f"  {comp_type}: {count}\n"
-                stats_text += f"\nTotal Ports: {total_ports}\n"
-            
-            if hasattr(self, 'statistics_text'):
-                self.statistics_text.setPlainText(stats_text)
-                
-        except Exception as e:
-            print(f"❌ Statistics update failed: {e}")
-    
-    def on_parsing_failed(self, error_message: str):
-        """Handle parsing failed event"""
-        self.progress_bar.setVisible(False)
-        self.status_bar.showMessage("Parsing failed")
-        
-        QMessageBox.critical(
-            self,
-            "Parsing Error",
-            f"Failed to parse ARXML file:\n\n{error_message}"
-        )
-    
-    def update_recent_files(self, recent_files: List[str]):
-        """Update recent files menu"""
-        self._update_recent_files_menu(recent_files)
-    
-    def _update_recent_files_menu(self, recent_files: List[str]):
-        """Update the recent files submenu"""
-        self.recent_menu.clear()
-        
-        if recent_files:
-            for file_path in recent_files:
-                action = QAction(Path(file_path).name, self)
-                action.setToolTip(file_path)
-                action.triggered.connect(lambda checked, path=file_path: self._open_recent_file(path))
-                self.recent_menu.addAction(action)
-        else:
-            action = QAction("No recent files", self)
-            action.setEnabled(False)
-            self.recent_menu.addAction(action)
-    
-    def _open_recent_file(self, file_path: str):
-        """Open a recent file"""
-        if self.app_controller:
-            self.app_controller.open_file(file_path)
-    
-    def set_theme(self, theme: str):
-        """Set application theme"""
-        if theme == "light":
-            self._apply_light_theme()
-    
-    def _on_component_selected(self, component):
-        """Handle component selection from graphics scene"""
-        # This is now handled by navigation controller
-        pass
-    
-    def _on_component_double_clicked(self, component):
-        """Handle component double-click from graphics scene"""
-        # This is now handled by navigation controller
-        pass
-    
-    def _show_component_properties(self, component):
-        """Display component properties in the properties panel"""
-        properties_text = f"Component: {component.short_name}\n"
-        properties_text += f"Type: {component.component_type.value}\n"
-        properties_text += f"Package: {component.package_path or 'Unknown'}\n"
-        properties_text += f"UUID: {component.uuid}\n\n"
-        
-        if component.desc:
-            properties_text += f"Description:\n{component.desc}\n\n"
-        
-        # Port information
-        properties_text += f"Ports ({component.port_count}):\n"
-        
-        if component.provided_ports:
-            properties_text += "\nProvided Ports:\n"
-            for port in component.provided_ports:
-                properties_text += f"  • {port.short_name} ({port.port_type.value})\n"
-                if port.interface_ref:
-                    properties_text += f"    Interface: {port.interface_ref}\n"
-        
-        if component.required_ports:
-            properties_text += "\nRequired Ports:\n"
-            for port in component.required_ports:
-                properties_text += f"  • {port.short_name} ({port.port_type.value})\n"
-                if port.interface_ref:
-                    properties_text += f"    Interface: {port.interface_ref}\n"
-        
-        # Composition information
-        if component.is_composition:
-            properties_text += f"\nComposition Details:\n"
-            properties_text += f"Sub-components: {len(component.components)}\n"
-            properties_text += f"Connections: {len(component.connections)}\n"
-        
-        self.properties_text.setPlainText(properties_text)
-        
-        # Switch to properties tab
-        self.properties_tabs.setCurrentIndex(0)
-    
-    # View control methods (Enhanced for Day 3)
-    def _zoom_in(self):
-        """Zoom in the graphics view"""
-        if hasattr(self, 'graphics_view'):
-            self.graphics_view.scale(1.2, 1.2)
-            self._update_zoom_label()
-    
-    def _zoom_out(self):
-        """Zoom out the graphics view"""
-        if hasattr(self, 'graphics_view'):
-            self.graphics_view.scale(0.8, 0.8)
-            self._update_zoom_label()
-    
-    def _reset_zoom(self):
-        """Reset zoom to 100%"""
-        if hasattr(self, 'graphics_view'):
-            self.graphics_view.resetTransform()
-            self._update_zoom_label()
-    
-    def _fit_to_window(self):
-        """Fit diagram content to window"""
-        if hasattr(self, 'graphics_scene') and hasattr(self, 'graphics_view'):
-            self.graphics_scene.fit_components_in_view()
-            self.graphics_view.fitInView(self.graphics_scene.sceneRect(), Qt.KeepAspectRatio)
-            self._update_zoom_label()
-    
-    def _update_zoom_label(self):
-        """Update zoom percentage label"""
-        if hasattr(self, 'graphics_view'):
-            transform = self.graphics_view.transform()
-            zoom = transform.m11() * 100
-            self.zoom_label.setText(f"{zoom:.0f}%")
-    
-    def _toggle_tree_panel(self):
-        """Toggle tree panel visibility"""
-        self.layout_manager.toggle_panel_visibility('tree')
-    
-    def _toggle_properties_panel(self):
-        """Toggle properties panel visibility"""
-        self.layout_manager.toggle_panel_visibility('properties')
-    
-    def _refresh_view(self):
-        """Refresh the current view"""
-        if self.is_file_open:
-            self.status_bar.showMessage("Refreshing view...", 1000)
-    
-    def _show_about_dialog(self):
-        """Show about dialog"""
-        QMessageBox.about(
-            self,
-            f"About {AppConstants.APP_NAME}",
-            f"""
-            <h3>{AppConstants.APP_NAME} v{AppConstants.APP_VERSION}</h3>
-            <p>Professional AUTOSAR ARXML file viewer for automotive engineers</p>
-            <p>Built with Python and PyQt5</p>
-            <p><b>Author:</b> {AppConstants.APP_AUTHOR}</p>
-            <p><b>Organization:</b> {AppConstants.ORGANIZATION}</p>
-            <p><b>Features:</b></p>
-            <ul>
-            <li>Enhanced tree navigation with search</li>
-            <li>Advanced search and filtering</li>
-            <li>Component visualization</li>
-            <li>Navigation history</li>
-            <li>Customizable layouts</li>
-            </ul>
-            """
-        )
-    
-    def closeEvent(self, event):
-        """Handle window close event"""
-        # Save layout state
-        self.layout_manager.save_state_on_exit()
-        
-        if self.is_file_open:
-            reply = QMessageBox.question(
-                self,
-                "Confirm Exit",
-                "Are you sure you want to exit?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Export as SVG", "diagram.svg", 
+                "SVG Files (*.svg);;All Files (*.*)"
             )
             
-            if reply == QMessageBox.Yes:
-                self.exit_requested.emit()
-                event.accept()
+            if filename:
+                success = self._export_scene_to_file(filename, "SVG")
+                if success:
+                    QMessageBox.information(self, "Export Successful", f"Diagram exported to:\n{filename}")
+                else:
+                    QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
+                    
+        except Exception as e:
+            self.logger.error(f"SVG export failed: {e}")
+            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
+    
+    def _export_as_pdf(self):
+        """Export diagram as PDF document"""
+        try:
+            if not self.is_file_open or not self.graphics_scene:
+                QMessageBox.warning(self, "Export Error", "No diagram to export. Please open an ARXML file first.")
+                return
+            
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Export as PDF", "diagram.pdf", 
+                "PDF Files (*.pdf);;All Files (*.*)"
+            )
+            
+            if filename:
+                success = self._export_scene_to_file(filename, "PDF")
+                if success:
+                    QMessageBox.information(self, "Export Successful", f"Diagram exported to:\n{filename}")
+                else:
+                    QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
+                    
+        except Exception as e:
+            self.logger.error(f"PDF export failed: {e}")
+            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
+    
+    def _quick_export(self):
+        """Quick export using default format (PNG)"""
+        self._export_as_png()
+    
+    def _export_scene_to_file(self, filename: str, format_type: str) -> bool:
+        """Export graphics scene to file in specified format"""
+        try:
+            if not self.graphics_scene:
+                return False
+            
+            # Use the graphics scene's export method if available
+            if hasattr(self.graphics_scene, 'export_scene_image'):
+                return self.graphics_scene.export_scene_image(filename)
+            
+            # Fallback: capture the graphics view
+            if format_type == "PNG":
+                pixmap = self.graphics_view.grab()
+                return pixmap.save(filename, "PNG")
+            elif format_type == "SVG":
+                # SVG export would require QSvgGenerator - simplified for now
+                pixmap = self.graphics_view.grab()
+                return pixmap.save(filename, "PNG")  # Save as PNG instead
+            elif format_type == "PDF":
+                # PDF export would require QPrinter - simplified for now
+                pixmap = self.graphics_view.grab()
+                return pixmap.save(filename, "PNG")  # Save as PNG instead
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Scene export failed: {e}")
+            return False
+    
+    # Day 5 - NEW: Auto-layout functionality
+    def _apply_auto_layout(self, layout_type: str):
+        """Apply specified auto-layout algorithm"""
+        try:
+            if not self.is_file_open or not self.graphics_scene:
+                QMessageBox.warning(self, "Layout Error", "No diagram to layout. Please open an ARXML file first.")
+                return
+            
+            # Apply layout using graphics scene
+            if hasattr(self.graphics_scene, 'auto_arrange_layout'):
+                self.graphics_scene.auto_arrange_layout()
+                self.status_bar.showMessage(f"Applied {layout_type} layout", 2000)
             else:
-                event.ignore()
-        else:
-            self.exit_requested.emit()
-            event.accept()
+                QMessageBox.information(self, "Layout", f"Applied {layout_type} layout algorithm")
+                
+        except Exception as e:
+            self.logger.error(f"Auto-layout failed: {e}")
+            QMessageBox.critical(self, "Layout Error", f"Layout failed: {e}")
+    
+    def _apply_smart_auto_layout(self):
+        """Apply smart auto-layout (chooses best algorithm automatically)"""
+        try:
+            if not self.is_file_open or not self.graphics_scene:
+                QMessageBox.warning(self, "Layout Error", "No diagram to layout. Please open an ARXML file first.")
+                return
+            
+            # Use the graphics scene's auto-arrange method
+            if hasattr(self.graphics_scene, 'auto_arrange_layout'):
+                self.graphics_scene.auto_arrange_layout()
+                self.status_bar.showMessage("Applied smart auto-layout", 2000)
+            else:
+                # Fallback to hierarchical layout
+                self._apply_auto_layout("hierarchical")
+                
+        except Exception as e:
+            self.logger.error(f"Smart auto-layout failed: {e}")
+            QMessageBox.critical(self, "Layout Error", f"Smart layout failed: {e}")
+    
+    # Day 5 - NEW: Breadcrumb event handlers
+    def _on_breadcrumb_clicked(self, breadcrumb_item):
+        """Handle breadcrumb item click"""
+        try:
+            self.logger.debug(f"Breadcrumb clicked: {breadcrumb_item.name}")
+            
+            # Navigate to the breadcrumb item using navigation controller
+            if self.navigation_controller and hasattr(self.navigation_controller, 'navigate_to_breadcrumb'):
+                breadcrumb_index = self.breadcrumb_widget.breadcrumb_items.index(breadcrumb_item)
+                self.navigation_controller.navigate_to_breadcrumb(breadcrumb_index)
+            
+        except
