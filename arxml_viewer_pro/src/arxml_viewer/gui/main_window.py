@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
                     QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
                     
         except Exception as e:
-            self.logger.error(f"PNG export failed: {e}")  # FIXED: Correct error message
+            self.logger.error(f"PNG export failed: {e}")
             QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
     
     def _on_breadcrumb_navigation(self, item_type: str, item_uuid: str):
@@ -732,6 +732,39 @@ class MainWindow(QMainWindow):
         self.navigation_controller.clear_mappings()
         
         self.status_bar.showMessage("File closed")
+    
+    def on_parsing_started(self, file_path: str):
+        """Handle parsing started event"""
+        try:
+            self.logger.info(f"Started parsing file: {file_path}")
+            
+            # Show progress bar
+            if hasattr(self, 'progress_bar'):
+                self.progress_bar.setVisible(True)
+                self.progress_bar.setRange(0, 0)  # Indeterminate progress
+            
+            # Update status
+            self.status_bar.showMessage(f"Parsing {Path(file_path).name}...")
+            
+            # Clear previous content
+            if hasattr(self, 'enhanced_tree_widget') and self.enhanced_tree_widget:
+                self.enhanced_tree_widget.clear()
+            
+            if hasattr(self, 'properties_text'):
+                self.properties_text.setPlainText("Parsing file...")
+            
+            if hasattr(self, 'search_results_text'):
+                self.search_results_text.clear()
+            
+            if hasattr(self, 'statistics_text'):
+                self.statistics_text.clear()
+            
+            # Clear graphics scene
+            if hasattr(self, 'graphics_scene') and self.graphics_scene:
+                self.graphics_scene.clear_scene()
+            
+        except Exception as e:
+            self.logger.error(f"Parsing started handler failed: {e}")
     
     def on_parsing_finished(self, packages, metadata):
         """Handle parsing finished event - Enhanced with Day 5 features"""
@@ -1240,7 +1273,7 @@ class MainWindow(QMainWindow):
             self._fit_to_window()
     
     def _perform_quick_search(self, query: str):
-        """Perform quick search from toolbar"""
+        """Perform quick search from toolbar - FIXED VERSION"""
         if not query:
             return
             
@@ -1261,21 +1294,24 @@ class MainWindow(QMainWindow):
             else:
                 results_text += "No results found."
             
-            self.search_results_text.setPlainText(results_text)
+            if hasattr(self, 'search_results_text'):
+                self.search_results_text.setPlainText(results_text)
             
-            # Switch to search results tab
-            self.properties_tabs.setCurrentIndex(1)
+                # Switch to search results tab
+                if hasattr(self, 'properties_tabs'):
+                    self.properties_tabs.setCurrentIndex(1)
             
             # Highlight first result in tree if available
-            if results:
+            if results and hasattr(self, 'enhanced_tree_widget'):
                 first_result = results[0]
                 if self.enhanced_tree_widget:
                     self.enhanced_tree_widget.select_object_by_uuid(first_result.item_uuid)
             
-            # Update status
-            self. Exception as e:
-            self.logger.error(f"PNG export failed: {e}")
-            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
+            # Update status - FIXED
+            self.status_bar.showMessage(f"Found {len(results)} results for '{query}'", 3000)
+            
+        except Exception as e:
+            self.logger.error(f"Quick search failed: {e}")
     
     def _export_as_svg(self):
         """Export diagram as SVG vector"""
@@ -1408,254 +1444,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.logger.error(f"Breadcrumb click handling failed: {e}")
     
-    def _on_breadcrumb_navigation(self, item_type: str, item_uuid: str):
-        """Handle breadcrumb navigation request"""
-        try:
-            self.logger.debug(f"Breadcrumb navigation: {item_type} {item_uuid}")
-            
-            # Use navigation controller to handle the navigation
-            if self.navigation_controller:
-                if hasattr(self.navigation_controller, 'navigation_requested'):
-                    self.navigation_controller.navigation_requested.emit(item_type, item_uuid)
-            
-        except Exception as e:
-            self.logger.error(f"Breadcrumb navigation failed: {e}")
-    
-    def _update_breadcrumbs(self, breadcrumb_path):
-        """Update breadcrumb display from navigation controller"""
-        try:
-            if self.breadcrumb_widget:
-                self.breadcrumb_widget.set_breadcrumb_path(breadcrumb_path)
-            
-        except Exception as e:
-            self.logger.error(f"Breadcrumb update failed: {e}")
-    
-    def _on_navigation_changed(self, navigation_object):
-        """Handle navigation change to update breadcrumbs"""
-        try:
-            # Update navigation buttons
-            if hasattr(self.navigation_controller, 'can_navigate_back'):
-                self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
-                
-            if hasattr(self.navigation_controller, 'can_navigate_forward'):
-                self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
-            
-            # Update home button
-            self.home_action.setEnabled(self.is_file_open)
-            
-        except Exception as e:
-            self.logger.error(f"Navigation change handling failed: {e}")
-    
-    def _toggle_breadcrumbs(self):
-        """Toggle breadcrumb widget visibility"""
-        try:
-            if self.breadcrumb_widget:
-                visible = not self.breadcrumb_widget.isVisible()
-                self.breadcrumb_widget.setVisible(visible)
-                self.toggle_breadcrumbs_action.setChecked(visible)
-                
-        except Exception as e:
-            self.logger.error(f"Breadcrumb toggle failed: {e}")
-    
-    def _navigate_back(self):
-        """Navigate back in history"""
-        try:
-            if self.navigation_controller and hasattr(self.navigation_controller, 'navigate_back'):
-                if self.navigation_controller.navigate_back():
-                    self._update_navigation_buttons()
-            
-        except Exception as e:
-            self.logger.error(f"Navigate back failed: {e}")
-    
-    def _navigate_forward(self):
-        """Navigate forward in history"""
-        try:
-            if self.navigation_controller and hasattr(self.navigation_controller, 'navigate_forward'):
-                if self.navigation_controller.navigate_forward():
-                    self._update_navigation_buttons()
-            
-        except Exception as e:
-            self.logger.error(f"Navigate forward failed: {e}")
-    
-    def _navigate_home(self):
-        """Navigate to home/root view"""
-        try:
-            if self.breadcrumb_widget:
-                # Navigate to first breadcrumb (root)
-                breadcrumb_path = self.breadcrumb_widget.get_breadcrumb_path()
-                if breadcrumb_path:
-                    first_item = self.breadcrumb_widget.breadcrumb_items[0]
-                    self._on_breadcrumb_clicked(first_item)
-            
-        except Exception as e:
-            self.logger.error(f"Navigate home failed: {e}")
-    
-    def _update_navigation_buttons(self):
-        """Update navigation button states"""
-        try:
-            if self.navigation_controller:
-                # Update back/forward buttons
-                if hasattr(self.navigation_controller, 'can_navigate_back'):
-                    self.back_action.setEnabled(self.navigation_controller.can_navigate_back())
-                
-                if hasattr(self.navigation_controller, 'can_navigate_forward'):
-                    self.forward_action.setEnabled(self.navigation_controller.can_navigate_forward())
-            
-        except Exception as e:
-            self.logger.error(f"Navigation button update failed: {e}")
-    
-    def _on_composition_drill_down(self, component):
-        """Handle composition drill-down request from graphics scene"""
-        try:
-            self.logger.info(f"Composition drill-down: {component.short_name}")
-            
-            # Add to breadcrumb navigation
-            if self.breadcrumb_widget:
-                self.breadcrumb_widget.add_breadcrumb(
-                    name=component.short_name,
-                    display_name=f"📦 {component.short_name}",
-                    item_type="composition",
-                    item_uuid=component.uuid,
-                    tooltip=f"Composition: {component.short_name}"
-                )
-            
-            # Update status
-            self.status_bar.showMessage(f"Navigated into composition: {component.short_name}", 3000)
-            
-        except Exception as e:
-            self.logger.error(f"Composition drill-down failed: {e}")
-    
-    def _apply_initial_layout(self):
-        """Apply initial auto-layout after file loading"""
-        try:
-            if self.is_file_open and self.graphics_scene:
-                # Apply smart auto-layout
-                if hasattr(self.graphics_scene, 'auto_arrange_layout'):
-                    self.graphics_scene.auto_arrange_layout()
-                    print("✅ Applied initial auto-layout")
-                
-                # Fit to window
-                self._fit_to_window()
-                
-        except Exception as e:
-            print(f"⚠️ Initial layout failed: {e}")
-    
-    def _export_as_svg(self):
-        """Export diagram as SVG vector"""
-        try:
-            if not self.is_file_open or not self.graphics_scene:
-                QMessageBox.warning(self, "Export Error", "No diagram to export. Please open an ARXML file first.")
-                return
-            
-            filename, _ = QFileDialog.getSaveFileName(
-                self, "Export as SVG", "diagram.svg", 
-                "SVG Files (*.svg);;All Files (*.*)"
-            )
-            
-            if filename:
-                success = self._export_scene_to_file(filename, "SVG")
-                if success:
-                    QMessageBox.information(self, "Export Successful", f"Diagram exported to:\n{filename}")
-                else:
-                    QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
-                    
-        except Exception as e:
-            self.logger.error(f"SVG export failed: {e}")
-            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
-    
-    def _export_as_pdf(self):
-        """Export diagram as PDF document"""
-        try:
-            if not self.is_file_open or not self.graphics_scene:
-                QMessageBox.warning(self, "Export Error", "No diagram to export. Please open an ARXML file first.")
-                return
-            
-            filename, _ = QFileDialog.getSaveFileName(
-                self, "Export as PDF", "diagram.pdf", 
-                "PDF Files (*.pdf);;All Files (*.*)"
-            )
-            
-            if filename:
-                success = self._export_scene_to_file(filename, "PDF")
-                if success:
-                    QMessageBox.information(self, "Export Successful", f"Diagram exported to:\n{filename}")
-                else:
-                    QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
-                    
-        except Exception as e:
-            self.logger.error(f"PDF export failed: {e}")
-            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
-    
-    def _quick_export(self):
-        """Quick export using default format (PNG)"""
-        self._export_as_png()
-    
-    def _export_scene_to_file(self, filename: str, format_type: str) -> bool:
-        """Export graphics scene to file in specified format"""
-        try:
-            if not self.graphics_scene:
-                return False
-            
-            # Use the graphics scene's export method if available
-            if hasattr(self.graphics_scene, 'export_scene_image'):
-                return self.graphics_scene.export_scene_image(filename)
-            
-            # Fallback: capture the graphics view
-            if format_type == "PNG":
-                pixmap = self.graphics_view.grab()
-                return pixmap.save(filename, "PNG")
-            elif format_type == "SVG":
-                # SVG export would require QSvgGenerator - simplified for now
-                pixmap = self.graphics_view.grab()
-                return pixmap.save(filename, "PNG")  # Save as PNG instead
-            elif format_type == "PDF":
-                # PDF export would require QPrinter - simplified for now
-                pixmap = self.graphics_view.grab()
-                return pixmap.save(filename, "PNG")  # Save as PNG instead
-            
-            return False
-            
-        except Exception as e:
-            self.logger.error(f"Scene export failed: {e}")
-            return False
-    
-    def _apply_auto_layout(self, layout_type: str):
-        """Apply specified auto-layout algorithm"""
-        try:
-            if not self.is_file_open or not self.graphics_scene:
-                QMessageBox.warning(self, "Layout Error", "No diagram to layout. Please open an ARXML file first.")
-                return
-            
-            # Apply layout using graphics scene
-            if hasattr(self.graphics_scene, 'auto_arrange_layout'):
-                self.graphics_scene.auto_arrange_layout()
-                self.status_bar.showMessage(f"Applied {layout_type} layout", 2000)
-            else:
-                QMessageBox.information(self, "Layout", f"Applied {layout_type} layout algorithm")
-                
-        except Exception as e:
-            self.logger.error(f"Auto-layout failed: {e}")
-            QMessageBox.critical(self, "Layout Error", f"Layout failed: {e}")
-    
-    def _apply_smart_auto_layout(self):
-        """Apply smart auto-layout (chooses best algorithm automatically)"""
-        try:
-            if not self.is_file_open or not self.graphics_scene:
-                QMessageBox.warning(self, "Layout Error", "No diagram to layout. Please open an ARXML file first.")
-                return
-            
-            # Use the graphics scene's auto-arrange method
-            if hasattr(self.graphics_scene, 'auto_arrange_layout'):
-                self.graphics_scene.auto_arrange_layout()
-                self.status_bar.showMessage("Applied smart auto-layout", 2000)
-            else:
-                # Fallback to hierarchical layout
-                self._apply_auto_layout("hierarchical")
-                
-        except Exception as e:
-            self.logger.error(f"Smart auto-layout failed: {e}")
-            QMessageBox.critical(self, "Layout Error", f"Smart layout failed: {e}")
-    
     # Add missing basic UI methods that were referenced but not defined
     def _show_advanced_search(self):
         """Show advanced search dialog"""
@@ -1664,54 +1452,6 @@ class MainWindow(QMainWindow):
                 self.search_dock.setVisible(True)
         except Exception as e:
             self.logger.error(f"Show advanced search failed: {e}")
-
-    def _update_status_bar_search_results(self, query: str, result_count: int):
-        """Update status bar with search results"""
-        try:
-            self.status_bar.showMessage(f"Found {result_count} results for '{query}'", 3000)
-        except Exception as e:
-            self.logger.error(f"Status bar update failed: {e}")
-    
-    def _perform_quick_search_fixed(self, query: str):
-        """Perform quick search from toolbar - FIXED VERSION"""
-        if not query:
-            return
-            
-        # Perform search using search engine
-        try:
-            results = self.search_engine.search(query, max_results=10)
-            
-            # Update search results tab
-            results_text = f"Quick Search Results for '{query}':\n\n"
-            
-            if results:
-                for i, result in enumerate(results, 1):
-                    results_text += f"{i}. {result.item_name} ({result.item_type})\n"
-                    results_text += f"   Match: {result.match_field}\n"
-                    if result.parent_package:
-                        results_text += f"   Package: {result.parent_package}\n"
-                    results_text += f"   Score: {result.relevance_score:.2f}\n\n"
-            else:
-                results_text += "No results found."
-            
-            if hasattr(self, 'search_results_text'):
-                self.search_results_text.setPlainText(results_text)
-            
-                # Switch to search results tab
-                if hasattr(self, 'properties_tabs'):
-                    self.properties_tabs.setCurrentIndex(1)
-            
-            # Highlight first result in tree if available
-            if results and hasattr(self, 'enhanced_tree_widget'):
-                first_result = results[0]
-                if self.enhanced_tree_widget:
-                    self.enhanced_tree_widget.select_object_by_uuid(first_result.item_uuid)
-            
-            # Update status - FIXED
-            self.status_bar.showMessage(f"Found {len(results)} results for '{query}'", 3000)
-            
-        except Exception as e:
-            self.logger.error(f"Quick search failed: {e}")
 
     def closeEvent(self, event):
         """Handle application close"""
