@@ -9,7 +9,8 @@ import math
 from typing import Optional, Tuple, List, Dict, Any
 from PyQt5.QtWidgets import (
     QGraphicsPathItem, QGraphicsLineItem, QGraphicsTextItem,
-    QGraphicsItem, QGraphicsEllipseItem, QGraphicsScene
+    QGraphicsItem, QGraphicsEllipseItem, QGraphicsScene,
+    QGraphicsPolygonItem
 )
 from PyQt5.QtCore import Qt, QPointF, QRectF, QTimer
 from PyQt5.QtGui import (
@@ -366,11 +367,11 @@ class ConnectionGraphicsItem(QGraphicsPathItem):
             'requester_port': self.connection.requester_endpoint.port_uuid
         }
 
-class ConnectionArrowHead(QGraphicsPolygonF):
+class ConnectionArrowHead(QGraphicsPolygonItem):  # CORRECTED: Use QGraphicsPolygonItem
     """Enhanced arrow head for connection end with proper scaling"""
     
-    def __init__(self, connection_item: ConnectionGraphicsItem):
-        super().__init__(connection_item)
+    def __init__(self, connection_item):
+        super().__init__(connection_item)  # CORRECTED: Proper inheritance
         
         self.connection_item = connection_item
         self.arrow_size = connection_item.arrow_size
