@@ -500,7 +500,6 @@ class MainWindow(QMainWindow):
             if hasattr(self.navigation_controller, 'navigation_changed'):
                 self.navigation_controller.navigation_changed.connect(self._on_navigation_changed)
     
-    # Day 5 - NEW: Export functionality
     def _export_as_png(self):
         """Export diagram as PNG image"""
         try:
@@ -521,7 +520,8 @@ class MainWindow(QMainWindow):
                     QMessageBox.critical(self, "Export Failed", "Failed to export diagram.")
                     
         except Exception as e:
-            self.logger.error(f"Breadcrumb click handling failed: {e}")
+            self.logger.error(f"PNG export failed: {e}")  # FIXED: Correct error message
+            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
     
     def _on_breadcrumb_navigation(self, item_type: str, item_uuid: str):
         """Handle breadcrumb navigation request"""
@@ -1664,9 +1664,16 @@ class MainWindow(QMainWindow):
                 self.search_dock.setVisible(True)
         except Exception as e:
             self.logger.error(f"Show advanced search failed: {e}")
+
+    def _update_status_bar_search_results(self, query: str, result_count: int):
+        """Update status bar with search results"""
+        try:
+            self.status_bar.showMessage(f"Found {result_count} results for '{query}'", 3000)
+        except Exception as e:
+            self.logger.error(f"Status bar update failed: {e}")
     
-    def _perform_quick_search(self, query: str):
-        """Perform quick search from toolbar"""
+    def _perform_quick_search_fixed(self, query: str):
+        """Perform quick search from toolbar - FIXED VERSION"""
         if not query:
             return
             
@@ -1700,11 +1707,21 @@ class MainWindow(QMainWindow):
                 if self.enhanced_tree_widget:
                     self.enhanced_tree_widget.select_object_by_uuid(first_result.item_uuid)
             
-            # Update status
+            # Update status - FIXED
             self.status_bar.showMessage(f"Found {len(results)} results for '{query}'", 3000)
             
         except Exception as e:
             self.logger.error(f"Quick search failed: {e}")
+
+    def closeEvent(self, event):
+        """Handle application close"""
+        try:
+            # Save layout state
+            if hasattr(self, 'layout_manager'):
+                self.layout_manager.save_state_on_exit()
+            event.accept()
+        except Exception:
+            event.accept()
     
     def _show_about_dialog(self):
         """Show about dialog"""
