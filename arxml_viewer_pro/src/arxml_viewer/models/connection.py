@@ -54,17 +54,15 @@ class Connection:
     Removed complex validation and helper methods
     """
     
-    # Essential properties
+    # Essential properties (required fields first)
     short_name: str
     connection_type: ConnectionType
-    desc: Optional[str] = None
-    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
-    
-    # Connection endpoints - simplified
     provider_endpoint: ConnectionEndpoint
     requester_endpoint: ConnectionEndpoint
     
-    # Additional endpoints for multi-point connections (simplified)
+    # Optional properties (fields with defaults last)
+    desc: Optional[str] = None
+    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     additional_endpoints: List[ConnectionEndpoint] = field(default_factory=list)
     
     def __post_init__(self):
