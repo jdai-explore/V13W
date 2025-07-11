@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Run ARXML Viewer Pro Application
-Handles Python path setup and launches the application
+Run ARXML Viewer Pro Application - FIXED VERSION
+Handles Python path setup and launches the application with better error handling
 """
 
 import sys
@@ -31,23 +31,65 @@ def check_dependencies():
     """Check if required dependencies are available"""
     print("🔍 Checking dependencies...")
     
-    deps = ['PyQt5', 'pydantic', 'lxml']
-    missing = []
+    required_deps = ['PyQt5', 'pydantic', 'lxml']
+    optional_deps = ['loguru', 'pandas', 'matplotlib', 'networkx']
     
-    for dep in deps:
+    missing_required = []
+    missing_optional = []
+    
+    # Check required dependencies
+    for dep in required_deps:
         try:
             __import__(dep)
             print(f"✅ {dep}")
         except ImportError:
-            print(f"❌ {dep} - MISSING")
-            missing.append(dep)
+            print(f"❌ {dep} - MISSING (REQUIRED)")
+            missing_required.append(dep)
     
-    if missing:
-        print(f"\n❌ Missing dependencies: {missing}")
+    # Check optional dependencies
+    for dep in optional_deps:
+        try:
+            __import__(dep)
+            print(f"✅ {dep}")
+        except ImportError:
+            print(f"⚠️ {dep} - MISSING (OPTIONAL)")
+            missing_optional.append(dep)
+    
+    if missing_required:
+        print(f"\n❌ Missing required dependencies: {missing_required}")
         print("Install them with: pip install PyQt5 pydantic lxml")
         return False
     
+    if missing_optional:
+        print(f"\n⚠️ Missing optional dependencies: {missing_optional}")
+        print("Application will run with reduced functionality.")
+        print("Install with: pip install loguru pandas matplotlib networkx")
+    
     return True
+
+def install_missing_dependencies():
+    """Try to install missing dependencies"""
+    print("\n🔧 Attempting to install missing dependencies...")
+    
+    try:
+        import subprocess
+        
+        # Install basic required packages
+        packages = ["PyQt5>=5.15.0", "pydantic>=2.4.0", "lxml>=4.9.3"]
+        
+        for package in packages:
+            try:
+                print(f"Installing {package}...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+                print(f"✅ {package} installed")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to install {package}: {e}")
+                return False
+        
+        return True
+    except Exception as e:
+        print(f"❌ Auto-installation failed: {e}")
+        return False
 
 def run_application():
     """Run the ARXML Viewer Pro application"""
@@ -65,6 +107,13 @@ def run_application():
         
     except ImportError as e:
         print(f"❌ Failed to import application: {e}")
+        
+        # Check if it's a missing dependency issue
+        if "loguru" in str(e):
+            print("\n💡 This appears to be a loguru dependency issue.")
+            print("The application should work with the fallback logger.")
+            print("Try installing loguru: pip install loguru")
+        
         return False
     except Exception as e:
         print(f"❌ Application failed to start: {e}")
@@ -74,8 +123,8 @@ def run_application():
 
 def main():
     """Main function"""
-    print("🔧 ARXML Viewer Pro Launcher")
-    print("=" * 40)
+    print("🔧 ARXML Viewer Pro Launcher - FIXED VERSION")
+    print("=" * 50)
     
     # Check we're in the right directory
     if not Path("src").exists():
@@ -89,7 +138,22 @@ def main():
     
     # Check dependencies
     if not check_dependencies():
-        return False
+        print("\n🔧 Required dependencies are missing.")
+        choice = input("Would you like to try auto-installing them? (y/n): ").lower().strip()
+        
+        if choice == 'y':
+            if install_missing_dependencies():
+                print("✅ Dependencies installed. Restarting dependency check...")
+                if not check_dependencies():
+                    print("❌ Dependency installation incomplete. Please install manually.")
+                    return False
+            else:
+                print("❌ Auto-installation failed. Please install manually:")
+                print("pip install PyQt5 pydantic lxml")
+                return False
+        else:
+            print("❌ Cannot continue without required dependencies.")
+            return False
     
     # Run the application
     success = run_application()
@@ -98,6 +162,11 @@ def main():
         print("\n✅ Application closed successfully")
     else:
         print("\n❌ Application encountered errors")
+        print("\n🔍 Troubleshooting tips:")
+        print("1. Make sure you're in the arxml_viewer_pro directory")
+        print("2. Install missing dependencies: pip install PyQt5 pydantic lxml loguru")
+        print("3. Try running: python -m arxml_viewer.main")
+        print("4. Check if PyQt5 is properly installed: python -c 'import PyQt5; print(\"PyQt5 OK\")'")
     
     return success
 

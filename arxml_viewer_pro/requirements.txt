@@ -1,6 +1,6 @@
-# ARXML Viewer Pro - Core Dependencies
+# ARXML Viewer Pro - Core Dependencies - FIXED VERSION
 
-# GUI Framework (PyQt5)
+# GUI Framework (PyQt5 - CORRECTED)
 PyQt5>=5.15.0
 
 # XML Processing
@@ -16,7 +16,6 @@ networkx>=3.1
 
 # Utilities
 click>=8.1.7
-loguru>=0.7.2
 
 # Performance
 numba>=0.58.0
@@ -25,3 +24,6 @@ numpy>=1.24.0
 # Optional: Advanced features
 Pillow>=10.0.0
 reportlab>=4.0.4
+
+# Optional: Enhanced logging (fallback to standard logging if not available)
+# loguru>=0.7.2
