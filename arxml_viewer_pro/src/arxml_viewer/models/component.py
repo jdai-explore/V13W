@@ -1,12 +1,16 @@
-# src/arxml_viewer/models/component.py
+# src/arxml_viewer/models/component.py - FIXED VERSION
 """
 Component Models - AUTOSAR software component definitions
+FIXED: Removed autosar.py base class, replaced Pydantic with dataclass
+Simplified validation and removed rendering properties from data model
 """
 
-from typing import Optional, List, Dict, Set
+from typing import Optional, List
 from enum import Enum
-from pydantic import BaseModel, Field, validator
-from .autosar import AutosarElement
+from dataclasses import dataclass, field
+import uuid
+
+# Import Port from same package (will be fixed too)
 from .port import Port
 
 class ComponentType(str, Enum):
@@ -16,39 +20,49 @@ class ComponentType(str, Enum):
     SERVICE = "SERVICE-SW-COMPONENT-TYPE"
     SENSOR_ACTUATOR = "SENSOR-ACTUATOR-SW-COMPONENT-TYPE"
     COMPLEX_DEVICE_DRIVER = "COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE"
-    
+
 class ComponentBehavior(str, Enum):
     """Component behavior types"""
     ATOMIC = "ATOMIC"
     COMPOSITE = "COMPOSITE"
 
-class Component(AutosarElement):
-    """AUTOSAR Software Component model"""
+@dataclass
+class Component:
+    """
+    FIXED AUTOSAR Software Component model - SIMPLIFIED
+    Removed AutosarElement inheritance, using basic dataclass
+    Removed Pydantic validation complexity
+    Removed rendering properties (position, size) - handle in graphics layer
+    """
+    
+    # Essential properties only
+    short_name: str
     component_type: ComponentType
     behavior: ComponentBehavior = ComponentBehavior.ATOMIC
+    desc: Optional[str] = None
+    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     
-    # Ports
-    provided_ports: List[Port] = Field(default_factory=list)
-    required_ports: List[Port] = Field(default_factory=list)
+    # Ports - simplified port management (basic lists only)
+    provided_ports: List[Port] = field(default_factory=list)
+    required_ports: List[Port] = field(default_factory=list)
     
-    # Composition-specific
-    components: List['Component'] = Field(default_factory=list)  # Sub-components
-    connections: List[str] = Field(default_factory=list)  # Connection UUIDs
+    # Composition-specific - simplified
+    components: List['Component'] = field(default_factory=list)  # Sub-components
+    connections: List[str] = field(default_factory=list)  # Connection UUIDs
     
-    # Metadata
+    # Metadata - keep essential only
     package_path: Optional[str] = None
     xml_path: Optional[str] = None  # XPath in original XML
     
-    # Rendering properties
-    position: Optional[tuple] = None  # (x, y) position for layout
-    size: Optional[tuple] = None      # (width, height) for rendering
-    
-    @validator('component_type')
-    def validate_component_type(cls, v):
-        """Validate component type"""
-        if isinstance(v, str):
-            return ComponentType(v)
-        return v
+    def __post_init__(self):
+        """Post-initialization processing"""
+        # Ensure component_type is proper enum
+        if isinstance(self.component_type, str):
+            try:
+                self.component_type = ComponentType(self.component_type)
+            except ValueError:
+                # Fallback to APPLICATION if unknown type
+                self.component_type = ComponentType.APPLICATION
     
     @property
     def all_ports(self) -> List[Port]:
@@ -72,12 +86,61 @@ class Component(AutosarElement):
                 return port
         return None
     
+    def get_port_by_uuid(self, port_uuid: str) -> Optional[Port]:
+        """Find port by UUID"""
+        for port in self.all_ports:
+            if port.uuid == port_uuid:
+                return port
+        return None
+    
     def add_port(self, port: Port) -> None:
         """Add a port to the component"""
-        if port.port_type.is_provided():
-            self.provided_ports.append(port)
-        else:
-            self.required_ports.append(port)
+        try:
+            # Set component reference
+            port.component_uuid = self.uuid
+            
+            # Add to appropriate list based on port type
+            if hasattr(port, 'is_provided') and port.is_provided:
+                if port not in self.provided_ports:
+                    self.provided_ports.append(port)
+            else:
+                if port not in self.required_ports:
+                    self.required_ports.append(port)
+        except Exception:
+            # Fallback - just add to required ports if we can't determine type
+            if port not in self.required_ports:
+                self.required_ports.append(port)
+    
+    def remove_port(self, port: Port) -> bool:
+        """Remove a port from the component"""
+        try:
+            if port in self.provided_ports:
+                self.provided_ports.remove(port)
+                return True
+            elif port in self.required_ports:
+                self.required_ports.remove(port)
+                return True
+            return False
+        except Exception:
+            return False
+    
+    def add_sub_component(self, component: 'Component') -> None:
+        """Add a sub-component (for compositions)"""
+        if component not in self.components:
+            self.components.append(component)
+    
+    def get_component_statistics(self) -> dict:
+        """Get component statistics"""
+        return {
+            'name': self.short_name,
+            'type': self.component_type.value,
+            'port_count': self.port_count,
+            'provided_ports': len(self.provided_ports),
+            'required_ports': len(self.required_ports),
+            'is_composition': self.is_composition,
+            'sub_components': len(self.components) if self.is_composition else 0,
+            'connections': len(self.connections) if self.connections else 0
+        }
     
     def __str__(self) -> str:
         return f"Component({self.short_name}, {self.component_type.value})"
@@ -85,3 +148,13 @@ class Component(AutosarElement):
     def __repr__(self) -> str:
         return (f"Component(uuid='{self.uuid}', short_name='{self.short_name}', "
                 f"type='{self.component_type.value}', ports={self.port_count})")
+    
+    def __eq__(self, other) -> bool:
+        """Check equality based on UUID"""
+        if not isinstance(other, Component):
+            return False
+        return self.uuid == other.uuid
+    
+    def __hash__(self) -> int:
+        """Hash based on UUID"""
+        return hash(self.uuid)
