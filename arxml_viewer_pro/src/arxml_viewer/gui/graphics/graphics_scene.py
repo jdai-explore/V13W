@@ -1,17 +1,7 @@
-# src/arxml_viewer/gui/graphics/graphics_scene.py - SIMPLIFIED VERSION
+# src/arxml_viewer/gui/graphics/graphics_scene.py - FIXED VERSION
 """
-Graphics Scene - SIMPLIFIED - Removed complex Day 5 enhancements
-SIGNIFICANT SIMPLIFICATION as per guide requirements:
-- Remove connection_manager integration (if connection_graphics.py has issues)
-- Remove auto-layout algorithms - simple grid positioning only
-- Remove enhanced port graphics - basic ellipses for ports
-- Remove navigation integration and breadcrumb updates
-- Remove drill-down functionality for compositions
-- Remove export functionality
-- Simplify ComponentGraphicsItem - basic rectangle with text
-- Remove complex event handling - basic click selection only
-- Keep basic functionality: Load components, display as rectangles, simple connections as lines
-- Remove scene statistics and metadata tracking
+Graphics Scene - FIXED to prevent component duplication
+SIGNIFICANT SIMPLIFICATION as per guide requirements
 """
 
 import math
@@ -26,7 +16,7 @@ from PyQt5.QtGui import QColor, QPen, QBrush, QFont
 from ...models.component import Component, ComponentType
 from ...models.package import Package
 from ...models.port import Port
-from ...models.connection import Connection
+from ...models.connection import Connection, ConnectionType
 from ...utils.constants import AppConstants, UIConstants
 from ...utils.logger import get_logger
 
@@ -265,7 +255,7 @@ class ComponentGraphicsItem(QGraphicsRectItem):
 
 class ComponentDiagramScene(QGraphicsScene):
     """
-    SIMPLIFIED Graphics Scene - removed complex Day 5 features
+    FIXED Graphics Scene - prevent component duplication
     Basic functionality only: Load components, display as rectangles, simple connections as lines
     """
     
@@ -291,51 +281,85 @@ class ComponentDiagramScene(QGraphicsScene):
         self.setBackgroundBrush(QBrush(QColor(245, 245, 245)))
         
         # Connect basic selection changes
-        self.selectionChanged.connect(self._on_basic_selection_changed)
+        self.selectionChanged.connect(self._on_selection_changed)
         
-        print("✅ SIMPLIFIED ComponentDiagramScene initialized")
+        print("✅ FIXED ComponentDiagramScene initialized")
     
     def load_packages(self, packages: List[Package], connections: List[Connection] = None):
-        """Load and visualize packages - SIMPLIFIED"""
-        print(f"🔧 SIMPLIFIED graphics scene loading {len(packages)} packages")
+        """Load and visualize packages - FIXED to prevent duplicates"""
+        print(f"🔧 FIXED graphics scene loading {len(packages)} packages")
         
         # Clear existing content
         self.clear_scene()
         
-        # Get all components
-        all_components = []
+        # FIXED: Use a set to track unique components by UUID
+        unique_components = {}
+        component_count_by_package = {}
+        
         for package in packages:
             try:
-                components = package.get_all_components(recursive=True)
-                all_components.extend(components)
-                print(f"Package {package.short_name}: {len(components)} components")
+                # Get components WITHOUT recursion first
+                direct_components = package.components
+                component_count_by_package[package.short_name] = len(direct_components)
+                
+                # Add direct components
+                for comp in direct_components:
+                    if comp.uuid not in unique_components:
+                        unique_components[comp.uuid] = comp
+                        print(f"✅ Added component: {comp.short_name} (UUID: {comp.uuid[:8]}...)")
+                    else:
+                        print(f"⚠️ Skipping duplicate component: {comp.short_name} (UUID: {comp.uuid[:8]}...)")
+                
+                # Process sub-packages recursively
+                def process_subpackages(sub_packages, level=1):
+                    for sub_pkg in sub_packages:
+                        print(f"{'  ' * level}📁 Processing sub-package: {sub_pkg.short_name}")
+                        for comp in sub_pkg.components:
+                            if comp.uuid not in unique_components:
+                                unique_components[comp.uuid] = comp
+                                print(f"{'  ' * level}✅ Added component: {comp.short_name} (UUID: {comp.uuid[:8]}...)")
+                            else:
+                                print(f"{'  ' * level}⚠️ Skipping duplicate: {comp.short_name}")
+                        # Recurse
+                        if sub_pkg.sub_packages:
+                            process_subpackages(sub_pkg.sub_packages, level + 1)
+                
+                if package.sub_packages:
+                    process_subpackages(package.sub_packages)
+                    
             except Exception as e:
                 print(f"⚠️ Failed to get components from package {package.short_name}: {e}")
         
-        print(f"Total components to display: {len(all_components)}")
+        # Convert unique components to list
+        all_components = list(unique_components.values())
+        
+        print(f"📊 Component deduplication summary:")
+        for pkg_name, count in component_count_by_package.items():
+            print(f"  - {pkg_name}: {count} direct components")
+        print(f"Total unique components: {len(all_components)}")
         
         if not all_components:
             print("⚠️ No components found to display")
             return
         
-        # Create BASIC component graphics
+        # Create component graphics
         self._create_basic_component_graphics(all_components)
         
-        # Create SIMPLE connections as lines
+        # Create connections
         if connections:
             print(f"🔗 Loading {len(connections)} connections as simple lines")
             self._create_simple_connections(connections)
         else:
             print("⚠️ No connections provided")
         
-        # Apply SIMPLE grid layout
+        # Apply layout
         self._apply_simple_grid_layout(all_components)
         
         # Update scene rect
         self._update_basic_scene_rect()
         
-        print(f"✅ SIMPLIFIED visualization complete: {len(all_components)} components, "
-              f"{len(self.connections)} simple connections")
+        print(f"✅ FIXED visualization complete: {len(all_components)} unique components, "
+              f"{len(self.connections)} connections")
     
     def _create_basic_component_graphics(self, components: List[Component]):
         """Create BASIC component graphics - simple rectangles with text"""
@@ -546,7 +570,7 @@ class ComponentDiagramScene(QGraphicsScene):
         except Exception as e:
             self.logger.error(f"Scene rect update failed: {e}")
     
-    def _on_basic_selection_changed(self):
+    def _on_selection_changed(self):
         """Handle BASIC selection changes"""
         try:
             selected_items = self.selectedItems()

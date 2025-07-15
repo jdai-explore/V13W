@@ -157,32 +157,26 @@ class Port:
         return hash(self.uuid)
 
 # SIMPLIFIED Interface class for backward compatibility
-@dataclass 
-class Interface:
+@dataclass
+class Port:
     """
-    SIMPLIFIED Interface definition for backward compatibility
-    Removed complex AutosarElement inheritance
-    Basic dataclass implementation
+    FIXED: Allow UUID to be provided, only generate if not set
     """
-    
-    short_name: str
-    interface_type: InterfaceType
-    desc: Optional[str] = None
+    # ... other fields ...
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
-    
-    # Simplified content
-    methods: List[str] = field(default_factory=list)
-    data_elements: List[str] = field(default_factory=list)
     
     def __post_init__(self):
         """Post-initialization processing"""
-        # Ensure interface_type is proper enum
-        if isinstance(self.interface_type, str):
+        # Only generate UUID if not provided
+        if not self.uuid:
+            self.uuid = str(uuid.uuid4())
+            
+        # Ensure port_type is proper enum
+        if isinstance(self.port_type, str):
             try:
-                self.interface_type = InterfaceType(self.interface_type)
+                self.port_type = PortType(self.port_type)
             except ValueError:
-                # Fallback to SENDER_RECEIVER if unknown type
-                self.interface_type = InterfaceType.SENDER_RECEIVER
+                self.port_type = PortType.REQUIRED
     
     def get_interface_info(self) -> Dict[str, Any]:
         """Get interface information"""

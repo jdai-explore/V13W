@@ -494,117 +494,139 @@ class EnhancedTreeWidget(QTreeWidget):
         """Show context menu at position"""
         pass
     
-    def load_packages(self, packages):
-        """Load packages into tree widget - FIXED VERSION with safe item creation"""
-        print(f"🔧 Tree widget loading {len(packages)} packages")
-        
-        # Clear existing items safely
-        self._safe_clear()
-        
-        for package in packages:
-            try:
-                print(f"Adding package: {package.short_name}")
-                
-                # Create package item
-                pkg_item = EnhancedTreeWidgetItem(self, TreeItemType.PACKAGE)
-                pkg_item.setText(0, f"📁 {package.short_name}")
-                pkg_item.set_data_object(package)
-                
-                # Add to tracking
-                self.all_items.append(pkg_item)
-                
-                # Add components
-                for component in package.components:
-                    try:
-                        comp_item = EnhancedTreeWidgetItem(pkg_item, TreeItemType.COMPONENT)
-                        
-                        # Component icon based on type
-                        if component.component_type.name == 'APPLICATION':
-                            icon = "📱"
-                        elif component.component_type.name == 'COMPOSITION':
-                            icon = "📦"
-                        elif component.component_type.name == 'SERVICE':
-                            icon = "🔧"
-                        else:
-                            icon = "⚙️"
-                        
-                        comp_item.setText(0, f"{icon} {component.short_name}")
-                        comp_item.set_data_object(component)
-                        self.all_items.append(comp_item)
-                        
-                        # Add ports
-                        for port in component.all_ports:
-                            try:
-                                port_item = EnhancedTreeWidgetItem(comp_item, TreeItemType.PORT)
-                                port_symbol = "🟢" if port.is_provided else "🔴"
-                                port_item.setText(0, f"{port_symbol} {port.short_name}")
-                                port_item.set_data_object(port)
-                                self.all_items.append(port_item)
-                            except Exception as e:
-                                print(f"❌ Failed to add port {port.short_name}: {e}")
-                        
-                        print(f"  Added component: {component.short_name} with {len(component.all_ports)} ports")
-                        
-                    except Exception as e:
-                        print(f"❌ Failed to add component {component.short_name}: {e}")
-                
-                # Add sub-packages recursively
-                if package.sub_packages:
-                    self._add_sub_packages(package.sub_packages, pkg_item)
-                
-                # Expand first level by default
-                if pkg_item.is_valid():
-                    pkg_item.setExpanded(True)
-                
-                print(f"✅ Added package: {package.short_name} with {len(package.components)} components")
-                
-            except Exception as e:
-                print(f"❌ Failed to add package {package.short_name}: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        print(f"✅ Tree widget populated with {len(self.all_items)} total items")
-        
-        # Expand all top level items
-        self.expandToDepth(1)
+    # Fixed tree_widget.py - load_packages method to show proper hierarchy
+
+def load_packages(self, packages):
+    """Load packages into tree widget - FIXED to show proper hierarchy without duplicates"""
+    print(f"🔧 FIXED tree widget loading {len(packages)} packages")
     
-    def _add_sub_packages(self, sub_packages, parent_item):
-        """Add sub-packages recursively - FIXED with safe item handling"""
-        if not parent_item.is_valid():
-            return
+    # Clear existing items safely
+    self._safe_clear()
+    
+    # Track components we've already added to prevent duplicates in flat view
+    added_component_uuids = set()
+    
+    for package in packages:
+        try:
+            print(f"Adding package: {package.short_name}")
             
-        for sub_pkg in sub_packages:
-            try:
-                sub_item = EnhancedTreeWidgetItem(parent_item, TreeItemType.PACKAGE)
-                sub_item.setText(0, f"📁 {sub_pkg.short_name}")
-                sub_item.set_data_object(sub_pkg)
-                self.all_items.append(sub_item)
-                
-                # Add components in sub-package
-                for component in sub_pkg.components:
-                    try:
-                        comp_item = EnhancedTreeWidgetItem(sub_item, TreeItemType.COMPONENT)
-                        comp_item.setText(0, f"⚙️ {component.short_name}")
-                        comp_item.set_data_object(component)
-                        self.all_items.append(comp_item)
-                        
-                        # Add ports
-                        for port in component.all_ports:
+            # Create package item
+            pkg_item = EnhancedTreeWidgetItem(self, TreeItemType.PACKAGE)
+            pkg_item.setText(0, f"📁 {package.short_name}")
+            pkg_item.set_data_object(package)
+            
+            # Add to tracking
+            self.all_items.append(pkg_item)
+            
+            # Add DIRECT components only (not recursive)
+            for component in package.components:
+                try:
+                    # Create component item under its package
+                    comp_item = EnhancedTreeWidgetItem(pkg_item, TreeItemType.COMPONENT)
+                    
+                    # Component icon based on type
+                    if component.component_type.name == 'APPLICATION':
+                        icon = "📱"
+                    elif component.component_type.name == 'COMPOSITION':
+                        icon = "📦"
+                    elif component.component_type.name == 'SERVICE':
+                        icon = "🔧"
+                    else:
+                        icon = "⚙️"
+                    
+                    comp_item.setText(0, f"{icon} {component.short_name}")
+                    comp_item.set_data_object(component)
+                    self.all_items.append(comp_item)
+                    
+                    # Track that we've added this component
+                    added_component_uuids.add(component.uuid)
+                    
+                    # Add ports
+                    for port in component.all_ports:
+                        try:
                             port_item = EnhancedTreeWidgetItem(comp_item, TreeItemType.PORT)
                             port_symbol = "🟢" if port.is_provided else "🔴"
                             port_item.setText(0, f"{port_symbol} {port.short_name}")
                             port_item.set_data_object(port)
                             self.all_items.append(port_item)
-                            
-                    except Exception as e:
-                        print(f"❌ Failed to add sub-package component: {e}")
-                
-                # Recurse for nested packages
-                if sub_pkg.sub_packages:
-                    self._add_sub_packages(sub_pkg.sub_packages, sub_item)
-                
-            except Exception as e:
-                print(f"❌ Failed to add sub-package: {e}")
+                        except Exception as e:
+                            print(f"❌ Failed to add port {port.short_name}: {e}")
+                    
+                    print(f"  ✅ Added component: {component.short_name} (UUID: {component.uuid[:8]}...) with {len(component.all_ports)} ports")
+                    
+                except Exception as e:
+                    print(f"❌ Failed to add component {component.short_name}: {e}")
+            
+            # Add sub-packages recursively - they show their own components
+            if package.sub_packages:
+                self._add_sub_packages_fixed(package.sub_packages, pkg_item, added_component_uuids)
+            
+            # Expand first level by default
+            if pkg_item.is_valid():
+                pkg_item.setExpanded(True)
+            
+            print(f"✅ Added package: {package.short_name} with {len(package.components)} direct components")
+            
+        except Exception as e:
+            print(f"❌ Failed to add package {package.short_name}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    print(f"✅ Tree widget populated with {len(self.all_items)} total items")
+    print(f"📊 Added {len(added_component_uuids)} unique components")
+    
+    # Expand all top level items
+    self.expandToDepth(1)
+
+def _add_sub_packages_fixed(self, sub_packages, parent_item, added_component_uuids):
+    """Add sub-packages recursively - FIXED to track duplicates"""
+    if not parent_item.is_valid():
+        return
+        
+    for sub_pkg in sub_packages:
+        try:
+            sub_item = EnhancedTreeWidgetItem(parent_item, TreeItemType.PACKAGE)
+            sub_item.setText(0, f"📁 {sub_pkg.short_name}")
+            sub_item.set_data_object(sub_pkg)
+            self.all_items.append(sub_item)
+            
+            # Add DIRECT components of this sub-package only
+            new_components_count = 0
+            for component in sub_pkg.components:
+                try:
+                    # Check if we've already shown this component elsewhere
+                    if component.uuid in added_component_uuids:
+                        print(f"  ⚠️ Skipping duplicate component in tree: {component.short_name} (UUID: {component.uuid[:8]}...)")
+                        continue
+                    
+                    comp_item = EnhancedTreeWidgetItem(sub_item, TreeItemType.COMPONENT)
+                    comp_item.setText(0, f"⚙️ {component.short_name}")
+                    comp_item.set_data_object(component)
+                    self.all_items.append(comp_item)
+                    
+                    # Track this component
+                    added_component_uuids.add(component.uuid)
+                    new_components_count += 1
+                    
+                    # Add ports
+                    for port in component.all_ports:
+                        port_item = EnhancedTreeWidgetItem(comp_item, TreeItemType.PORT)
+                        port_symbol = "🟢" if port.is_provided else "🔴"
+                        port_item.setText(0, f"{port_symbol} {port.short_name}")
+                        port_item.set_data_object(port)
+                        self.all_items.append(port_item)
+                        
+                except Exception as e:
+                    print(f"❌ Failed to add sub-package component: {e}")
+            
+            print(f"  📁 Added sub-package: {sub_pkg.short_name} with {new_components_count} new components")
+            
+            # Recurse for nested packages
+            if sub_pkg.sub_packages:
+                self._add_sub_packages_fixed(sub_pkg.sub_packages, sub_item, added_component_uuids)
+            
+        except Exception as e:
+            print(f"❌ Failed to add sub-package: {e}")
     
     def _safe_clear(self):
         """Safely clear all items"""

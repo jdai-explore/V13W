@@ -1,15 +1,6 @@
-# src/arxml_viewer/parsers/arxml_parser.py - SIMPLIFIED VERSION
+# src/arxml_viewer/parsers/arxml_parser.py - FIXED VERSION WITH UUID EXTRACTION
 """
-ARXML Parser - SIMPLIFIED with interface_parser integration removed
-MODERATE SIMPLIFICATION: Removed interface_parser, simplified connections, basic parsing
-FIXES APPLIED:
-- Remove interface_parser integration completely
-- Remove complex connection parsing (keep basic connections only)
-- Remove UUID mapping systems for connections
-- Simplify XML parsing - use basic lxml approach only
-- Remove complex statistics tracking
-- Remove interface linking functionality
-- Simplify to: Parse packages → Parse components → Parse ports → Basic connections
+ARXML Parser - FIXED to extract UUIDs and prevent duplicates
 """
 
 import os
@@ -75,8 +66,7 @@ class SimpleXMLHelper:
 
 class ARXMLParser:
     """
-    SIMPLIFIED ARXML parser - interface_parser integration removed
-    MODERATE SIMPLIFICATION as per guide requirements
+    FIXED ARXML parser - extracts UUIDs from ARXML
     """
     
     def __init__(self):
@@ -107,16 +97,6 @@ class ARXMLParser:
     def parse_file(self, file_path: str) -> Tuple[List[Package], Dict[str, Any]]:
         """
         Parse ARXML file and return packages with basic connections
-        SIMPLIFIED - removed interface_parser integration
-        
-        Args:
-            file_path: Path to ARXML file
-            
-        Returns:
-            Tuple of (packages, metadata)
-            
-        Raises:
-            ARXMLParsingError: If parsing fails
         """
         start_time = time.time()
         file_path = Path(file_path)
@@ -226,7 +206,7 @@ class ARXMLParser:
             raise ARXMLParsingError(f"Failed to parse packages: {e}")
     
     def _parse_package_simplified(self, pkg_elem: etree.Element, xml_helper: SimpleXMLHelper, parent_path: str = "") -> Optional[Package]:
-        """Parse individual AR-PACKAGE element - SIMPLIFIED"""
+        """Parse individual AR-PACKAGE element - FIXED to extract UUID"""
         try:
             short_name = xml_helper.get_text(pkg_elem, "SHORT-NAME")
             if not short_name:
@@ -241,11 +221,19 @@ class ARXMLParser:
             # Get description
             desc = self._get_description(pkg_elem, xml_helper)
             
+            # FIXED: Extract UUID from ARXML if present
+            uuid_from_arxml = xml_helper.get_text(pkg_elem, "UUID")
+            
             package = Package(
                 short_name=short_name,
                 full_path=full_path,
                 desc=desc
             )
+            
+            # FIXED: Use UUID from ARXML if available
+            if uuid_from_arxml:
+                package.uuid = uuid_from_arxml
+                print(f"📌 Using UUID from ARXML for package {short_name}: {uuid_from_arxml}")
             
             # Parse sub-packages
             sub_packages_elem = xml_helper.find_element(pkg_elem, "SUB-PACKAGES")
@@ -302,7 +290,7 @@ class ARXMLParser:
     
     def _parse_component_simplified(self, comp_elem: etree.Element, xml_helper: SimpleXMLHelper, 
                                    component_type: ComponentType, package_path: str) -> Optional[Component]:
-        """Parse individual component - SIMPLIFIED without interface linking"""
+        """Parse individual component - FIXED to extract UUID from ARXML"""
         try:
             short_name = xml_helper.get_text(comp_elem, "SHORT-NAME")
             if not short_name:
@@ -310,12 +298,20 @@ class ARXMLParser:
             
             desc = self._get_description(comp_elem, xml_helper)
             
+            # FIXED: Extract UUID from ARXML if present
+            uuid_from_arxml = xml_helper.get_text(comp_elem, "UUID")
+            
             component = Component(
                 short_name=short_name,
                 component_type=component_type,
                 desc=desc,
                 package_path=package_path
             )
+            
+            # FIXED: Use UUID from ARXML if available
+            if uuid_from_arxml:
+                component.uuid = uuid_from_arxml
+                print(f"📌 Using UUID from ARXML for {short_name}: {uuid_from_arxml}")
             
             # Store component reference mapping for basic connection resolution
             component_ref = f"{package_path}/{short_name}"
@@ -368,7 +364,7 @@ class ARXMLParser:
     
     def _parse_port_simplified(self, port_elem: etree.Element, xml_helper: SimpleXMLHelper, 
                               port_type: PortType, component_uuid: str) -> Optional[Port]:
-        """Parse individual port - SIMPLIFIED without interface resolution"""
+        """Parse individual port - FIXED to extract UUID from ARXML"""
         try:
             short_name = xml_helper.get_text(port_elem, "SHORT-NAME")
             if not short_name:
@@ -376,12 +372,20 @@ class ARXMLParser:
             
             desc = self._get_description(port_elem, xml_helper)
             
+            # FIXED: Extract UUID from ARXML if present
+            uuid_from_arxml = xml_helper.get_text(port_elem, "UUID")
+            
             port = Port(
                 short_name=short_name,
                 port_type=port_type,
                 desc=desc,
                 component_uuid=component_uuid
             )
+            
+            # FIXED: Use UUID from ARXML if available
+            if uuid_from_arxml:
+                port.uuid = uuid_from_arxml
+                print(f"📌 Using UUID from ARXML for port {short_name}: {uuid_from_arxml}")
             
             # Parse basic interface reference - store as string only
             interface_ref = self._get_interface_reference_basic(port_elem, xml_helper)
@@ -393,7 +397,7 @@ class ARXMLParser:
         except Exception as e:
             print(f"❌ Failed to parse port: {e}")
             return None
-    
+
     def _parse_basic_connections(self, root: etree.Element, xml_helper: SimpleXMLHelper):
         """Parse basic connections - SIMPLIFIED without complex UUID mapping"""
         try:

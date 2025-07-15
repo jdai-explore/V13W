@@ -29,39 +29,22 @@ class ComponentBehavior(str, Enum):
 @dataclass
 class Component:
     """
-    FIXED AUTOSAR Software Component model - SIMPLIFIED
-    Removed AutosarElement inheritance, using basic dataclass
-    Removed Pydantic validation complexity
-    Removed rendering properties (position, size) - handle in graphics layer
+    FIXED: Allow UUID to be provided, only generate if not set
     """
-    
-    # Essential properties only
-    short_name: str
-    component_type: ComponentType
-    behavior: ComponentBehavior = ComponentBehavior.ATOMIC
-    desc: Optional[str] = None
+    # ... other fields ...
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
-    
-    # Ports - simplified port management (basic lists only)
-    provided_ports: List[Port] = field(default_factory=list)
-    required_ports: List[Port] = field(default_factory=list)
-    
-    # Composition-specific - simplified
-    components: List['Component'] = field(default_factory=list)  # Sub-components
-    connections: List[str] = field(default_factory=list)  # Connection UUIDs
-    
-    # Metadata - keep essential only
-    package_path: Optional[str] = None
-    xml_path: Optional[str] = None  # XPath in original XML
     
     def __post_init__(self):
         """Post-initialization processing"""
+        # Only generate UUID if not provided
+        if not self.uuid:
+            self.uuid = str(uuid.uuid4())
+            
         # Ensure component_type is proper enum
         if isinstance(self.component_type, str):
             try:
                 self.component_type = ComponentType(self.component_type)
             except ValueError:
-                # Fallback to APPLICATION if unknown type
                 self.component_type = ComponentType.APPLICATION
     
     @property

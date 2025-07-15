@@ -19,27 +19,18 @@ from .component import Component
 @dataclass
 class Package:
     """
-    SIMPLIFIED AUTOSAR Package representation
-    Removed complex logging, statistics, and recursive search methods
-    Basic dataclass implementation with essential functionality only
+    FIXED: Allow UUID to be provided, only generate if not set
     """
-    
-    # Essential properties only
-    short_name: str
-    full_path: str = ""
-    desc: Optional[str] = None
+    # ... other fields ...
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
-    
-    # Content - basic lists only
-    components: List[Component] = field(default_factory=list)
-    sub_packages: List['Package'] = field(default_factory=list)
-    
-    # Parent reference - keep for basic hierarchy
-    parent_package: Optional['Package'] = None
     
     def __post_init__(self):
         """SIMPLIFIED initialization"""
-        # Fix full_path if not provided - basic string concatenation
+        # Only generate UUID if not provided
+        if not self.uuid:
+            self.uuid = str(uuid.uuid4())
+            
+        # Fix full_path if not provided
         if not self.full_path:
             self.full_path = f"/{self.short_name}"
         
