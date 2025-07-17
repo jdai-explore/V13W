@@ -1,8 +1,11 @@
 # src/arxml_viewer/models/component.py - FIXED VERSION
 """
-Component Models - AUTOSAR software component definitions
-FIXED: Removed autosar.py base class, replaced Pydantic with dataclass
-Simplified validation and removed rendering properties from data model
+Component Models - FIXED VERSION with complete dataclass definition
+FIXES APPLIED:
+- Complete dataclass definition with all required fields
+- Proper UUID field initialization  
+- Fixed __post_init__ method
+- Corrected field defaults and types
 """
 
 from typing import Optional, List
@@ -10,8 +13,11 @@ from enum import Enum
 from dataclasses import dataclass, field
 import uuid
 
-# Import Port from same package (will be fixed too)
-from .port import Port
+# Forward reference to avoid circular imports
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .port import Port
+    from .connection import Connection
 
 class ComponentType(str, Enum):
     """AUTOSAR component types"""
@@ -29,10 +35,28 @@ class ComponentBehavior(str, Enum):
 @dataclass
 class Component:
     """
-    FIXED: Allow UUID to be provided, only generate if not set
+    FIXED Component definition with complete dataclass fields
     """
-    # ... other fields ...
+    
+    # Required fields
+    short_name: str
+    component_type: ComponentType
+    
+    # Optional fields with defaults
+    desc: Optional[str] = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    package_path: Optional[str] = None
+    behavior: ComponentBehavior = ComponentBehavior.ATOMIC
+    
+    # Port collections with proper defaults
+    provided_ports: List['Port'] = field(default_factory=list)
+    required_ports: List['Port'] = field(default_factory=list)
+    
+    # For composition components - sub-components
+    components: List['Component'] = field(default_factory=list)
+    
+    # Connection information
+    connections: List['Connection'] = field(default_factory=list)
     
     def __post_init__(self):
         """Post-initialization processing"""
@@ -48,7 +72,7 @@ class Component:
                 self.component_type = ComponentType.APPLICATION
     
     @property
-    def all_ports(self) -> List[Port]:
+    def all_ports(self) -> List['Port']:
         """Get all ports (provided + required)"""
         return self.provided_ports + self.required_ports
     
@@ -62,25 +86,26 @@ class Component:
         """Get total port count"""
         return len(self.provided_ports) + len(self.required_ports)
     
-    def get_port_by_name(self, name: str) -> Optional[Port]:
+    def get_port_by_name(self, name: str) -> Optional['Port']:
         """Find port by short name"""
         for port in self.all_ports:
-            if port.short_name == name:
+            if hasattr(port, 'short_name') and port.short_name == name:
                 return port
         return None
     
-    def get_port_by_uuid(self, port_uuid: str) -> Optional[Port]:
+    def get_port_by_uuid(self, port_uuid: str) -> Optional['Port']:
         """Find port by UUID"""
         for port in self.all_ports:
-            if port.uuid == port_uuid:
+            if hasattr(port, 'uuid') and port.uuid == port_uuid:
                 return port
         return None
     
-    def add_port(self, port: Port) -> None:
+    def add_port(self, port: 'Port') -> None:
         """Add a port to the component"""
         try:
             # Set component reference
-            port.component_uuid = self.uuid
+            if hasattr(port, 'component_uuid'):
+                port.component_uuid = self.uuid
             
             # Add to appropriate list based on port type
             if hasattr(port, 'is_provided') and port.is_provided:
@@ -94,7 +119,7 @@ class Component:
             if port not in self.required_ports:
                 self.required_ports.append(port)
     
-    def remove_port(self, port: Port) -> bool:
+    def remove_port(self, port: 'Port') -> bool:
         """Remove a port from the component"""
         try:
             if port in self.provided_ports:
@@ -141,3 +166,6 @@ class Component:
     def __hash__(self) -> int:
         """Hash based on UUID"""
         return hash(self.uuid)
+
+# Export classes
+__all__ = ['Component', 'ComponentType', 'ComponentBehavior']

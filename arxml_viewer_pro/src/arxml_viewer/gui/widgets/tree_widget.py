@@ -1,8 +1,8 @@
 # src/arxml_viewer/gui/widgets/tree_widget.py - FIXED VERSION
 """
-Enhanced Tree Widget - FIXED VERSION with proper hierarchy and no duplicates
+Enhanced Tree Widget - FIXED VERSION with proper syntax and hierarchy
 Provides hierarchical navigation with search, filtering, and context menus
-FIXED deletion and cleanup issues, FIXED duplicate components
+FIXED deletion and cleanup issues, FIXED duplicate components, FIXED syntax errors
 """
 
 from typing import Dict, List, Optional, Set, Any
@@ -350,7 +350,8 @@ class TreeSearchWidget(QWidget):
     def set_search_text(self, text: str):
         """Set search text"""
         self.search_input.setText(text)
-    class EnhancedTreeWidget(QTreeWidget):
+
+class EnhancedTreeWidget(QTreeWidget):
     """
     Enhanced tree widget - FIXED VERSION with proper hierarchy and no duplicates
     Provides comprehensive navigation for ARXML components

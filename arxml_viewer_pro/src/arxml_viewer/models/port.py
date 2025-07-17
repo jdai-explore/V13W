@@ -1,9 +1,12 @@
 # src/arxml_viewer/models/port.py - FIXED VERSION
 """
-Port Models - AUTOSAR port and interface definitions
-FIXED: Removed AutosarElement and Interface imports
-Replaced Pydantic with dataclass, simplified port type validation
-Removed complex Interface class - keep only interface_ref string
+Port Models - FIXED VERSION with complete dataclass definition
+FIXES APPLIED:
+- Complete dataclass definition with all required fields
+- Proper UUID field initialization
+- Fixed __post_init__ method
+- Corrected field defaults and types
+- Removed duplicate Interface class definition
 """
 
 from typing import Optional, List, Dict, Any
@@ -36,17 +39,14 @@ class InterfaceType(str, Enum):
 @dataclass
 class Port:
     """
-    FIXED AUTOSAR Port definition - SIMPLIFIED
-    Removed AutosarElement inheritance, using basic dataclass
-    Replaced Pydantic with dataclass
-    Removed Interface class - keep only interface_ref string
-    Simplified PortType enum - just PROVIDED, REQUIRED, PROVIDED_REQUIRED
-    Removed complex validation - basic type checking only
+    FIXED Port definition with complete dataclass fields
     """
     
-    # Essential properties
+    # Required fields
     short_name: str
     port_type: PortType
+    
+    # Optional fields with defaults
     desc: Optional[str] = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     
@@ -58,6 +58,10 @@ class Port:
     
     def __post_init__(self):
         """Post-initialization processing"""
+        # Only generate UUID if not provided
+        if not self.uuid:
+            self.uuid = str(uuid.uuid4())
+            
         # Ensure port_type is proper enum
         if isinstance(self.port_type, str):
             try:
@@ -157,13 +161,23 @@ class Port:
         return hash(self.uuid)
 
 # SIMPLIFIED Interface class for backward compatibility
-@dataclass
-class Port:
+@dataclass 
+class Interface:
     """
-    FIXED: Allow UUID to be provided, only generate if not set
+    SIMPLIFIED Interface definition for backward compatibility
     """
-    # ... other fields ...
+    
+    # Required fields
+    short_name: str
+    interface_type: InterfaceType
+    
+    # Optional fields with defaults
+    desc: Optional[str] = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    
+    # Interface elements
+    methods: List[str] = field(default_factory=list)
+    data_elements: List[str] = field(default_factory=list)
     
     def __post_init__(self):
         """Post-initialization processing"""
@@ -171,12 +185,12 @@ class Port:
         if not self.uuid:
             self.uuid = str(uuid.uuid4())
             
-        # Ensure port_type is proper enum
-        if isinstance(self.port_type, str):
+        # Ensure interface_type is proper enum
+        if isinstance(self.interface_type, str):
             try:
-                self.port_type = PortType(self.port_type)
+                self.interface_type = InterfaceType(self.interface_type)
             except ValueError:
-                self.port_type = PortType.REQUIRED
+                self.interface_type = InterfaceType.SENDER_RECEIVER
     
     def get_interface_info(self) -> Dict[str, Any]:
         """Get interface information"""
