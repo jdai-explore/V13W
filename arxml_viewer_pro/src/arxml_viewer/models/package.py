@@ -1,45 +1,36 @@
-# src/arxml_viewer/models/package.py - FIXED VERSION
+# src/arxml_viewer/models/package.py - SIMPLIFIED VERSION
 """
-Package Model - FIXED VERSION with proper dataclass definition
-FIXES APPLIED:
-- Complete dataclass definition with all required fields
-- Proper UUID field initialization
-- Fixed __post_init__ method
-- Corrected field defaults and types
+Package Model - SIMPLIFIED VERSION with proper path calculation
+FIXES APPLIED per guide:
+- Simplify to basic dataclass
+- Remove logger integration
+- Simplify path calculation - basic string concatenation
+- Keep basic functionality: components list, sub_packages list
+- Remove complex statistics and recursive search methods
 """
 
 import uuid
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
-# Forward reference to avoid circular imports
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .component import Component
+# Import Component from same package (will be fixed too)
+from .component import Component
 
 @dataclass
 class Package:
     """
-    FIXED Package definition with complete dataclass fields
+    FIXED: Allow UUID to be provided, only generate if not set
     """
-    
-    # Required fields
     short_name: str
-    
-    # Optional fields with defaults
     full_path: str = ""
-    desc: Optional[str] = None
+    desc: str = ""
+    components: List[Component] = field(default_factory=list)
+    sub_packages: List['Package'] = field(default_factory=list)
+    parent_package: Optional['Package'] = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     
-    # Collections with proper defaults
-    components: List['Component'] = field(default_factory=list)
-    sub_packages: List['Package'] = field(default_factory=list)
-    
-    # Optional parent reference
-    parent_package: Optional['Package'] = None
-    
     def __post_init__(self):
-        """FIXED initialization"""
+        """SIMPLIFIED initialization"""
         # Only generate UUID if not provided
         if not self.uuid:
             self.uuid = str(uuid.uuid4())
@@ -78,14 +69,13 @@ class Package:
         """Get package path (alias for full_path)"""
         return self.full_path
     
-    def add_component(self, component: 'Component'):
+    def add_component(self, component: Component):
         """Add component to package - SIMPLIFIED"""
         try:
             if component not in self.components:
                 self.components.append(component)
                 # Set component's package reference
-                if hasattr(component, 'package_path'):
-                    component.package_path = self.full_path
+                component.package_path = self.full_path
         except Exception:
             # Silent failure - just don't add if there's an issue
             pass
@@ -104,7 +94,7 @@ class Package:
             # Silent failure - just don't add if there's an issue
             pass
     
-    def get_all_components(self, recursive: bool = False) -> List['Component']:
+    def get_all_components(self, recursive: bool = False) -> List[Component]:
         """Get all components, optionally recursive - SIMPLIFIED"""
         try:
             components = self.components.copy()
@@ -140,7 +130,7 @@ class Package:
             # Return empty list on any error
             return []
     
-    def find_component_by_name(self, name: str, recursive: bool = True) -> Optional['Component']:
+    def find_component_by_name(self, name: str, recursive: bool = True) -> Optional[Component]:
         """Find component by name - SIMPLIFIED"""
         try:
             # Search direct components
@@ -163,7 +153,7 @@ class Package:
         except Exception:
             return None
     
-    def find_component_by_uuid(self, component_uuid: str, recursive: bool = True) -> Optional['Component']:
+    def find_component_by_uuid(self, component_uuid: str, recursive: bool = True) -> Optional[Component]:
         """Find component by UUID - SIMPLIFIED"""
         try:
             # Search direct components
@@ -274,7 +264,7 @@ class Package:
                 'is_empty': True
             }
     
-    def remove_component(self, component: 'Component') -> bool:
+    def remove_component(self, component: Component) -> bool:
         """Remove component from package - SIMPLIFIED"""
         try:
             if component in self.components:
@@ -368,15 +358,10 @@ class Package:
     
     def __contains__(self, item) -> bool:
         """Check if component is in this package"""
-        if hasattr(item, 'uuid'):
-            # Check by UUID for components
-            for comp in self.components:
-                if hasattr(comp, 'uuid') and comp.uuid == item.uuid:
-                    return True
-            # Check by UUID for sub-packages
-            for sub_pkg in self.sub_packages:
-                if hasattr(sub_pkg, 'uuid') and sub_pkg.uuid == item.uuid:
-                    return True
+        if isinstance(item, Component):
+            return item in self.components
+        elif isinstance(item, Package):
+            return item in self.sub_packages
         elif isinstance(item, str):
             # Check by name
             return any(comp.short_name == item for comp in self.components if hasattr(comp, 'short_name'))
